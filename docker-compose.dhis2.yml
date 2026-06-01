@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: dhis2
+      POSTGRES_PASSWORD: dhis2pass
+      POSTGRES_DB: dhis2
+    volumes:
+      - dhis2_db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  dhis2:
+    image: ${DHIS2_IMAGE:-dhis2/core:43.0.0}
+    environment:
+      - DHIS2_HOME=/opt/dhis2
+      - CATALINA_OPTS=-Dcontext.path=/dhis2
+    volumes:
+      - ./docker/dhis2/dhis.conf:/opt/dhis2/dhis.conf:ro
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+
+volumes:
+  dhis2_db_data:

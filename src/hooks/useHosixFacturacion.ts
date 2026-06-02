@@ -267,6 +267,159 @@ export const useHosixFacturacion = () => {
     return data as LineaFactura[];
   };
 
+  interface CuentaFacturaCreateData {
+    paciente_id: string;
+    episodio_id?: string;
+    aseguradora_id?: string;
+    servicio_id: string;
+    descripcion: string;
+    cantidad: number;
+    precio_unitario: number;
+  }
+
+  const obtenerTarifaServicio = async ({
+    servicio_id,
+    aseguradora_id,
+  }: {
+    servicio_id: string;
+    aseguradora_id?: string;
+  }) => {
+    const hoy = new Date().toISOString();
+
+    if (aseguradora_id) {
+      const { data: tarifaAseg, error: tarifaAsegError } = await supabase
+        .from('hosix_tarifas_aseguradora_servicio')
+        .select('*')
+        .eq('servicio_id', servicio_id)
+        .eq('aseguradora_id', aseguradora_id)
+        .lte('vigente_desde', hoy)
+        .or(`vigente_hasta.is.null, vigente_hasta.gte.${hoy}`)
+        .order('vigente_desde', { ascending: false })
+        .limit(1);
+
+      if (tarifaAsegError) throw tarifaAsegError;
+      if (tarifaAseg && tarifaAseg.length > 0) {
+        return {
+          precio: tarifaAseg[0].precio_tarifado,
+          descripcion: `Consulta con aseguradora ${aseguradora_id}`,
+        };
+      }
+    }
+
+    const { data: preciosServicio, error: preciosServicioError } = await supabase
+      .from('hosix_precios_servicio')
+      .select('*')
+      .eq('servicio_id', servicio_id)
+      .eq('activo', true)
+      .order('vigente_desde', { ascending: false })
+      .limit(1);
+
+    if (preciosServicioError) throw preciosServicioError;
+    if (preciosServicio && preciosServicio.length > 0) {
+      const precioServicio = preciosServicio[0].precio_hospital ?? preciosServicio[0].precio_base;
+      if (precioServicio != null) {
+        return {
+          precio: precioServicio,
+          descripcion: 'Consulta médica',
+        };
+      }
+    }
+
+    throw new Error('No se encontró tarifa o precio activo para este servicio');
+  };
+
+  const obtenerCuentaPendientePaciente = async (paciente_id: string) => {
+    const { data, error } = await supabase
+      .from('hosix_facturacion_cuentas')
+      .select('*')
+      .eq('paciente_id', paciente_id)
+      .eq('estado', 'abierta')
+      .gt('saldo_pendiente', 0)
+      .limit(1);
+
+    if (error) throw error;
+    return data && data.length > 0 ? data[0] : null;
+  };
+
+  const crearCuentaConFacturaMutation = useMutation({
+    mutationFn: async (formData: CuentaFacturaCreateData) => {
+      const numero_cuenta = await generarNumeroCuenta();
+
+      const { data: cuentaData, error: cuentaError } = await supabase
+        .from('hosix_facturacion_cuentas')
+        .insert([
+          {
+            paciente_id: formData.paciente_id,
+            episodio_id: formData.episodio_id,
+            aseguradora_id: formData.aseguradora_id || null,
+            numero_cuenta,
+            estado: 'abierta',
+            total_facturado: 0,
+            total_pagado: 0,
+            saldo_pendiente: 0,
+          },
+        ])
+        .select()
+        .single();
+
+      if (cuentaError) throw cuentaError;
+
+      const subtotal = formData.cantidad * formData.precio_unitario;
+      const impuesto = subtotal * 0.15;
+      const total = subtotal + impuesto;
+      const numero_factura = await generarNumeroFactura();
+
+      const { data: facturaData, error: facturaError } = await supabase
+        .from('hosix_facturas')
+        .insert([
+          {
+            numero_factura,
+            cuenta_id: cuentaData.id,
+            subtotal,
+            impuesto,
+            total,
+            estado: 'emitida',
+            fecha_vencimiento: null,
+          },
+        ])
+        .select()
+        .single();
+
+      if (facturaError) throw facturaError;
+
+      const { error: lineasError } = await supabase
+        .from('hosix_facturas_lineas')
+        .insert([
+          {
+            factura_id: facturaData.id,
+            concepto_texto: formData.descripcion,
+            cantidad: formData.cantidad,
+            precio_unitario: formData.precio_unitario,
+            subtotal,
+          },
+        ]);
+
+      if (lineasError) throw lineasError;
+
+      await supabase
+        .from('hosix_facturacion_cuentas')
+        .update({
+          total_facturado: total,
+          saldo_pendiente: total,
+        })
+        .eq('id', cuentaData.id);
+
+      return {
+        cuenta: cuentaData,
+        factura: facturaData,
+      };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cuentas-facturacion'] });
+      queryClient.invalidateQueries({ queryKey: ['facturas'] });
+    },
+  });
+
   // Crear aseguradora
   const crearAseguradoraMutation = useMutation({
     mutationFn: async (formData: AseguradoraFormData) => {
@@ -622,6 +775,11 @@ export const useHosixFacturacion = () => {
     isCreatingCuenta: crearCuentaMutation.isPending,
     cerrarCuenta: cerrarCuentaMutation.mutate,
     isClosingCuenta: cerrarCuentaMutation.isPending,
+    crearCuentaConFactura: crearCuentaConFacturaMutation.mutate,
+    crearCuentaConFacturaAsync: crearCuentaConFacturaMutation.mutateAsync,
+    isCreatingCuentaConFactura: crearCuentaConFacturaMutation.isPending,
+    obtenerTarifaServicio,
+    obtenerCuentaPendientePaciente,
 
     // Mutaciones - Facturas
     crearFactura: crearFacturaMutation.mutate,

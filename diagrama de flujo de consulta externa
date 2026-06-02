@@ -1,0 +1,205 @@
+# DIAGRAMA DE FLUJO DE ATENCIÓN EN CONSULTA EXTERNA - HOSIX
+
+---
+
+# 1. LÍNEA DE ACTOR: QUIOSCOS
+
+## Inicio
+
+- Llegada de paciente al centro hospitalario.
+
+### Decisión: ¿Tiene HC (Historia Clínica) en HOSIX?
+
+#### NO
+
+- Obtiene Ticket para registro y creación de HC.
+- Espera de Turno para atención en ADMISIÓN.
+
+#### SÍ
+
+- Conecta con **Conector [2]**.
+- Obtiene Ticket para atención (Citas, Programaciones, otros).
+- Espera de Turno para atención en ADMISIÓN.
+
+---
+
+## Conector [1]
+
+**(Proveniente de la entrega de comprobante de cita en Admisión)**
+
+- Llegada de paciente en espera de atención médica.
+- Obtiene Ticket para atención de cita.
+- Espera de llamado para atención médica ambulatoria.
+
+> Este bloque conecta directamente con la línea del Médico.
+
+---
+
+## Llegada de paciente para atención de farmacia
+
+- Obtiene Ticket para entrega de medicamentos (receta).
+- Espera de llamado de farmacia para entrega de medicación (Receta).
+
+> Este bloque conecta directamente con la línea de Farmacia.
+
+---
+
+# 2. LÍNEA DE ACTOR: ADMISIÓN
+
+## Bloque Izquierdo (Pacientes Nuevos / Sin HC)
+
+### Llamado de ticket a Ventanilla de Admisión
+
+### Registro del paciente en HOSIX y creación de la HC
+
+#### Datos asociados
+
+- Registro de Nombres y Apellidos
+- Tipo de documento
+- Número de documento
+- Fecha de nacimiento
+- Dirección
+- Teléfono
+- Correo
+- Otros
+
+### Decisión: ¿Requiere cita?
+
+#### NO
+
+- Terminar.
+
+#### SÍ
+
+- Desvía el flujo hacia el bloque derecho.
+
+---
+
+## Bloque Derecho (Pacientes con HC / Programados)
+
+### Llamado de ticket a Ventanilla de Admisión
+
+### Identificación del paciente por Nº de documento o NHC y Generación de Cita
+
+#### Datos asociados
+
+- Fecha y hora de cita
+- Servicio
+- Médico
+- Motivo
+- Estado de cita
+- Entre otros
+
+### Entrega de comprobante de cita al paciente
+
+- El paciente queda en espera de atención médica en fecha y hora programada.
+
+### Flujo
+
+- Conecta con **Conector [1]** (Hacia la línea de Quioscos).
+
+---
+
+# 3. LÍNEA DE ACTOR: MÉDICO
+
+## Llamado de ticket a consultorio
+
+> Viene activado desde el bloque de espera de atención médica ambulatoria en Quioscos.
+
+---
+
+## Atención Médica en Consulta Ambulatoria
+
+### Datos asociados de entrada
+
+- Evolución clínica
+- Diagnósticos / Procedimientos
+- Escalas y Cuestionarios
+- Signos Vitales
+- Alergias y Reacciones Adversas
+
+---
+
+## Flujos simultáneos y herramientas del médico
+
+### Generación de informes
+
+- Firma Digital.
+
+### Prescripción Electrónica (Receta)
+
+- Generación y entrega de Receta al paciente.
+
+> Conecta directamente con la línea de Farmacia.
+
+### Resultados Clínicos
+
+- Visualización de informe de Laboratorio.
+- Visualización de imágenes e Informes.
+
+### Solicitudes Diagnósticas
+
+#### Exámenes de RX
+
+- Integración con RIS/PACS.
+
+#### Exámenes de Laboratorio
+
+- Integración con LIS.
+
+### Gestión de Esperas
+
+#### Lista de Espera Quirúrgica (LEQ)
+
+#### Lista de Espera de Citas (LEC)
+
+- Conecta con **Conector [2]** (Hacia el inicio en Quioscos).
+
+---
+
+## Salida de la Consulta
+
+### Alta Médica
+
+#### Tipos de Alta
+
+- Hospitalización
+- Domicilio
+- Referencia
+- Otras
+
+### Cierre Clínico
+
+> Bloque final de la atención médica que conecta con la llegada del paciente a la Farmacia.
+
+---
+
+# 4. LÍNEA DE ACTOR: FARMACIA
+
+## Recepción de Prescripción Electrónica (Receta)
+
+> Viene derivado de la prescripción del médico.
+
+### Registro de medicamentos para días indicados
+
+### Salida de medicamentos de receta
+
+#### Acción interna de inventario
+
+- Descuento de Stock.
+
+---
+
+## Llamado de ticket a Farmacia
+
+> Activado por la espera de llamado de farmacia en la línea de Quioscos.
+
+---
+
+## Entrega de Medicamentos al paciente
+
+### Fin del proceso
+
+- Terminar.
+
+---

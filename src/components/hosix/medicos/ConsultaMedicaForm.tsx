@@ -58,7 +58,7 @@ export const ConsultaMedicaForm: React.FC<ConsultaMedicaFormProps> = ({
   // Estados del formulario
   const [formData, setFormData] = useState({
     antecedentes_relevantes: '',
-    historia_enfermedad_actual: '',
+    motivo_consulta: '',
     examen_fisico: '',
     impresion_clinica: '',
     diagnosticos_iniciales: '',
@@ -82,6 +82,9 @@ export const ConsultaMedicaForm: React.FC<ConsultaMedicaFormProps> = ({
   const { data: diagnosticosCatalogo = [], isLoading: loadingDiagnosticos } =
     useDiagnosticosCatalogo(diagnosticosBuscados)
   const { data: diagnosticosActivos = [] } = useDiagnosticosPaciente(pacienteId)
+
+  const getNombreDiagnostico = (diag: any) =>
+    diag?.nombre_diagnostico ?? diag?.nombre ?? diag?.descripcion ?? diag?.codigo_cie10 ?? 'Diagnóstico'
 
   // Métodos para diagnósticos
   const handleAgregarDiagnostico = (diagnostico: any, tipo: string) => {
@@ -142,15 +145,16 @@ export const ConsultaMedicaForm: React.FC<ConsultaMedicaFormProps> = ({
       await registrarDiarioMutation.mutateAsync({
         paciente_id: pacienteId,
         medico_id: '',
-        tipo_entrada: 'consulta',
+        tipo_entrada: 'nota_clínica',
         contenido: `Consulta médica realizada. Diagnósticos: ${diagnosticosSeleccionados.length}`,
+        firmada: false,
       })
 
       toast.success('Consulta médica registrada exitosamente')
       // Limpiar formulario
       setFormData({
         antecedentes_relevantes: '',
-        historia_enfermedad_actual: '',
+        motivo_consulta: '',
         examen_fisico: '',
         impresion_clinica: '',
         diagnosticos_iniciales: '',
@@ -196,7 +200,7 @@ export const ConsultaMedicaForm: React.FC<ConsultaMedicaFormProps> = ({
               <div className="space-y-2">
                 {diagnosticosActivos.slice(0, 5).map((diag) => (
                   <Badge key={diag.id} variant="secondary">
-                    {diag.nombre_diagnostico} ({diag.codigo_cie10})
+                    {getNombreDiagnostico(diag)}
                   </Badge>
                 ))}
               </div>
@@ -215,9 +219,9 @@ export const ConsultaMedicaForm: React.FC<ConsultaMedicaFormProps> = ({
             <label className="text-sm font-medium">Motivo de Consulta / Queja Principal</label>
             <Textarea
               placeholder="Describa el motivo principal por el que acude el paciente..."
-              value={formData.historia_enfermedad_actual}
+              value={formData.motivo_consulta}
               onChange={(e) =>
-                setFormData({ ...formData, historia_enfermedad_actual: e.target.value })
+                setFormData({ ...formData, motivo_consulta: e.target.value })
               }
               className="mt-2"
             />
@@ -296,7 +300,7 @@ export const ConsultaMedicaForm: React.FC<ConsultaMedicaFormProps> = ({
                         >
                           <div className="flex justify-between items-start mb-2">
                             <div className="flex-1">
-                              <p className="font-medium">{diag.nombre_diagnostico}</p>
+                              <p className="font-medium">{getNombreDiagnostico(diag)}</p>
                               <div className="flex gap-2 mt-1">
                                 <Badge variant="outline">CIE-10: {diag.codigo_cie10}</Badge>
                                 <Badge variant="outline">SNOMED: {diag.codigo_snomed}</Badge>

@@ -14,6 +14,7 @@ type Props = {
 }
 
 interface CatalogoEscala {
+  categoria: string
   codigo: string
   nombre: string
   descripcion: string
@@ -63,11 +64,11 @@ export default function FormularioEscala({
       const { data, error } = await supabase
         .from('clinico.catalogo_escalas')
         .select('*')
-        .eq('activa', true)
+        .filter('activa', 'eq', true)
         .order('categoria,nombre')
 
       if (error) throw error
-      return data || []
+      return (data as unknown as CatalogoEscala[]) || []
     },
   })
 
@@ -111,7 +112,7 @@ export default function FormularioEscala({
         }
       })
 
-      const { error } = await supabase.from('clinico.escalas_clinicas').insert({
+      const { error } = await supabase.from('clinico.escalas_clinicas' as any).insert([{
         paciente_id: pacienteId,
         episodio_id: episodioId || null,
         tipo_escala: escalaSeleccionada.codigo,
@@ -124,7 +125,7 @@ export default function FormularioEscala({
         observaciones: observaciones || null,
         evaluado_por: userId,
         created_by: userId,
-      })
+      }] as any)
 
       if (error) throw error
     },
@@ -285,4 +286,3 @@ export default function FormularioEscala({
     </Card>
   )
 }
-

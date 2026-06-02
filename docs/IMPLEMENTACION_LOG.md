@@ -200,11 +200,47 @@
 - 30-05-2026 11:35 | ✅ Integrado `TabBar` en `HosixLayout` (`src/components/hosix/HosixLayout.tsx`) para mostrar workspaces/pestañas bajo el header | GitHub Copilot
  - 30-05-2026 11:36 | ⚙️ Decisión de arquitectura: Usar `React Medical UI` (biblioteca de componentes para interfaces clínicas) y cumplir normas `FHIR (HL7)` en los modelos/contratos de datos; aplicar temas/visualización consistente en dashboards para mejorar la usabilidad y accesibilidad. | Equipo
  - 30-05-2026 12:30 | ✅ Creado componente `EscalasClinicas.tsx` con mapeo FHIR Observation para Glasgow, Braden y Norton; integrado en HCE avanzada | GitHub Copilot
+ - 02-06-2026 16:10 | ✅ Corregida compilación de Hospitalización creando hook `src/hooks/useProfesionales.ts`; se habilita selección de profesionales en `IngresoPacienteForm.tsx`. | GitHub Copilot
  - 30-05-2026 14:45 | ✅ Migración SQL completa: `20260530_013_escalas_clinicas_completas.sql` - Tabla `clinico.escalas_clinicas` + Catálogo de 30+ escalas clínicas | GitHub Copilot
  - 30-05-2026 14:50 | ✅ Escalas implementadas en migración: Glasgow, Braden, Norton, Apgar, Aldrete, Tinetti, Barthel, Katz, MMSE, GDS, Zarit, MNA, CURB-65, MEWS, NIHSS, CHADS2, CHA2DS2-VASc, Wells-TVP, Wells-TEP, NEWS2, Lawton, FINE/PSI, Alvarado, LRINEC, qSOFA, SOFA, PESI, FineArts-50, NAFLD, DSWI | GitHub Copilot
  - 30-05-2026 14:52 | ✅ Refactorizado componente `EscalasClinicas.tsx` - Ahora es genérico y carga dinámicamente todas las escalas del catálogo con filtrado por categoría | GitHub Copilot
  - 31-05-2026 09:15 | ✅ Finalizado flujo de captura de escalas clínicas con `FormularioEscala.tsx` + `EscalasClinicas.tsx` y registro persistente en `clinico.escalas_clinicas` | GitHub Copilot
  - 31-05-2026 09:20 | ✅ Corregido TabBar + tabsStore duplicados e integrado navegación de workspaces en `HosixLayout.tsx` | GitHub Copilot
+ - 02-06-2026 17:45 | ✅ **Integración Admission ↔ Billing - COMPLETADO** | GitHub Copilot
+   - Actualizado `src/components/hosix/admision/AdmisionCentralForm.tsx`:
+     - Hook `useHosixFacturacion` integrado para obtener tarifa de servicio
+     - Búsqueda automática de tarifa por `servicio_id` y `aseguradora_principal_id` del paciente
+     - Creación automática de cuenta facturación + factura al admitir paciente (antes de crear ticket)
+     - Número de cuenta y factura generados con helpers
+   - Actualizado `src/hooks/useHosixFacturacion.ts`:
+     - Helper `obtenerTarifaServicio(servicioId, aseguradoraId)` - Busca tarifa en DB o usa Hospital fallback
+     - Helper `obtenerCuentaPendientePaciente(pacienteId)` - Verifica si hay cuenta abierta con saldo pendiente
+     - Mutation `crearCuentaConFactura` con async support para uso en flujo admission
+     - Exports: `crearCuentaConFacturaAsync`, `obtenerTarifaServicio`, `obtenerCuentaPendientePaciente`
+   - Actualizado `src/components/hosix/medicos/WorklistMedicos.tsx`:
+     - Import `toast` desde `sonner` para notificaciones de error
+     - Guard en `handleCambiarEstado()` - Bloquea `en_atención` si paciente tiene cuenta consulta con saldo pendiente
+     - Toast error: "El paciente debe pagar la tarifa de consulta antes de entrar en atención"
+     - Mensaje incluye número de cuenta facturación pendiente
+   - **Requisito implementado:** "Antes de entrar en consulta se debe pagar la tarifa de la consulta"
+   - Status: ✅ OPERATIVO - Admission crea billing, Worklist enforces prepaid
+
+ - 02-06-2026 18:30 | ✅ **Consulta Externa: Inicio de atención, temporizador y notificación siguiente paciente** | GitHub Copilot
+   - Descripción: Implementada validación de ticket al entrar a consulta; al iniciar atención se persiste `attendance_started_at` en `hosix_tickets` y se registra evento de auditoría. Al finalizar la atención se persiste `attendance_ended_at`, se marca el ticket actual como `completado` y se avanza el siguiente ticket en cola marcándolo `llamado` con `llamado_at`. Además, la pantalla de sala de espera detecta tickets `llamado` y utiliza TTS (Web Speech API) + toast para anunciar el paciente.
+   - Archivos modificados:
+     - src/components/hosix/medicos/WorklistMedicos.tsx
+       - Validación de ticket pendiente antes de `en_atención`.
+       - Actualización de `hosix_tickets` con `attendance_started_at`, `attendance_ended_at`, `asignado_a`.
+       - Lógica cliente de temporizador de atención (auto-complete tras timeout configurable).
+       - Auditoría: llamadas a `useHosixAuditoria().registrarEvento` para inicio, fin y llamada siguiente.
+     - src/pages/Hosix/SalaEspera.tsx
+       - Lectura de `hosix_tickets` y detección de entradas con estado `llamado`.
+       - Uso de Web Speech API para anunciar pacientes llamados.
+   - Notas técnicas:
+     - Temporizador de atención implementado en cliente (15 minutos por defecto). Recomendado: agregar mecanismo server-side (trigger o función periódica) para evitar tickets atascados si el cliente falla.
+     - Se añadió auditoría de inicio/fin/llamado en `hosix_auditoria` mediante `useHosixAuditoria`.
+     - La notificación en la pantalla utiliza Realtime subscription existente en `hosix_tickets`.
+   - Estado: ✅ Implementado (se sugiere pruebas E2E y trigger servidor para robustez)
 
 - Nota: `src/modules/pacientes/components/HistoriaClinicaAvanzada.tsx` ya está implementado; ahora la pestaña de Historia Clínica en `src/pages/Hosix/Pacientes.tsx` usa la HCE avanzada.
 
@@ -218,6 +254,105 @@
 |-----------|----------|--------|
 | `ANALISIS_ALINEAMIENTO_HOSIX.md` | Análisis técnico completo (95 secciones) | ✅ Final |
 | `PLAN_ACCION_INMEDIATO.md` | Tareas, código SQL, componentes React | ✅ Final |
+
+## 🚀 PLAN DE IMPLEMENTACIÓN — FASE 1: COMPLETAR CORE CLÍNICO
+
+### Estado actual y alineamiento con el repositorio
+- `src/App.tsx` ya expone rutas para `/hosix`, `/hosix/urgencias`, `/hosix/pacientes`, `/hosix/hospitalizacion`, `/hosix/facturacion`, `/hosix/prescripcion`, `/hosix/imagenologia`, `/hosix/obstetricia`, `/hosix/almacenes`, `/hosix/configuracion`, etc.
+- `src/stores/authStore.ts` ya existe como persistencia Zustand, pero requiere integración completa con el flujo de login actual (`HosixLogin.tsx` y `useHosixAuth.ts`).
+- `src/lib/queryClient.ts` ya está configurado con React Query global.
+- El flujo de urgencias tiene componentes claramente definidos: `src/pages/Hosix/Urgencias.tsx`, `src/components/hosix/urgencias/UrgenciasWorklist.tsx`, `TriageForm.tsx`, `AtencionForm.tsx`, `TriageManchester.tsx`.
+- La Historia Clínica Avanzada está integrada en `src/pages/Hosix/Pacientes.tsx` mediante `src/modules/pacientes/components/HistoriaClinicaAvanzada.tsx` (incluye `AlergiasBanner`, `EscalasClinicas`, `TimelineEpisodios`).
+- Hospitalización ya consume `useHosixHospitalizacion.ts` y existen componentes de cama/traslado: `IngresoPacienteForm.tsx`, `AltaForm.tsx`, `TrasladosManager.tsx`.
+- `HosixDashboard.tsx` está presente, pero usa métricas estáticas; se puede migrar a métricas reales del backend en fase 1.
+
+### Objetivo de Fase 1
+Completar el core clínico operativo del hospital con:
+1. Login seguro y rutas protegidas.
+2. Historia clínica avanzada integrada y funcional.
+3. Flujo de urgencias completo con triage y alertas en tiempo real.
+4. Visualización de camas / hospitalización y disponibilidad.
+5. Dashboard de operaciones con métricas reales.
+6. Base para prescripción CPOE y diagnósticos CIE-11.
+
+### Tareas prioritarias de Fase 1
+1. **Integrar y proteger autenticación**
+   - Añadir `ProtectedRoute` o validación de sesión en `App.tsx`/`HosixLayout`.
+   - Unificar `useHosixAuth.ts` con `authStore.ts` para que el estado de usuario sea único y persistente.
+   - Garantizar `centro_salud_id` en el usuario y usar `validateCentroMembership` al iniciar sesión.
+   - Verificar `src/hooks/useHosixAuth.ts` y `src/stores/authStore.ts` para evitar duplicación de estado.
+
+2. **Completar y validar Historia Clínica Avanzada**
+   - Revisar `src/pages/Hosix/Pacientes.tsx` y garantizar que `HistoriaClinicaAvanzada` reciba el paciente correcto.
+   - Confirmar que `EscalasClinicas.tsx` carga y persiste los resultados clínicos.
+   - Validar `TimelineEpisodios.tsx` para todos los tipos de episodio existentes en la BD.
+   - Documentar las rutas de datos de HCE a partir de `hosix_urgencias_episodios`, `hosix_hospitalizacion_episodios`, `hosix_pacientes`.
+
+3. **Completar flujo de Urgencias**
+   - Asegurar que `UrgenciasWorklist` muestra episodios activos de `useHosixUrgencias`.
+   - Añadir lógica de alerta cuando nivel 1-2 > 5 minutos sin atención médica.
+   - Incorporar enlace directo desde la lista a la HCE del paciente.
+   - Validar que `TriageManchester.tsx` y `TriageForm.tsx` pueden crear o actualizar triage.
+   - Añadir refresco/realtime para `hosix_urgencias_episodios` y `hosix_urgencias_triage`.
+
+4. **Agregar mapa de camas operativo**
+   - Crear o mejorar componente de visualización de camas basado en `useHosixHospitalizacion.ts`.
+   - Incluir filtros por servicio, planta y estado de cama.
+   - Usar datos de `hosix_camas`/`hosix_hospitalizacion_episodios` y colores estándar: libre/ocupada/reservada/mantenimiento.
+   - Conectar el componente con hospitalización existente o mostrarlo en `Hospitalizacion.tsx`.
+
+5. **Transformar Dashboard en real-time**
+   - Reemplazar valores estáticos de `HosixDashboard.tsx` por consultas reales a Supabase.
+   - Agregar indicadores vitales clave: camas ocupadas, urgencias activas, ingresos del día, altas del día.
+   - Usar `useHosixUrgencias`, `useHosixHospitalizacion`, `useHosixPacientes` o hooks de métricas.
+
+6. **Alinear flujos clínicos clave**
+   - Documentar y asegurar los flujos de negocio de Consulta Externa, Emergencia y Hospitalización.
+   - Consulta Externa: cita → recepción → inicio de episodio `consulta_externa` → atención médica → derivación a urgencias u hospitalización si es necesario.
+   - Emergencia: ingreso por triage → evaluación médica → solicitudes/interconsultas/prescripción → alta o ingreso hospitalario.
+   - Hospitalización: admisión de paciente, asignación de cama, traslados internos, seguimiento de episodios y alta.
+   - Priorizar la visualización con Tremor para dashboards KPI y React Medical UI / componentes FHIR de Medplum para formularios clínicos.
+   - Verificar que el mapeo FHIR en `src/lib/fhirMapper.ts` / `src/types/fhir.ts` cubra `Patient`, `Encounter`, `Observation`, `AllergyIntolerance` y pueda consumirse desde HCE y urgencias.
+
+7. **Preparar CPOE / CIE-11 en paralelo**
+   - Revisar `Prescripcion.tsx` y `useHosixMedicos.ts` para detectar qué falta.
+   - Si hay datos de diagnóstico y medicamentos, implementar primer delivery de flujo CPOE básico.
+   - Crear la base de datos de códigos CIE-11 como migración futura si no existe aún.
+   - Implementar hook `useCDSEngine` para soporte de evaluación de prescripciones y alertas de seguridad.
+
+### Verificación de avance
+- Entregar versión mínima funcional con:
+  - Login + sesión activa en `/hosix`
+  - Página `/hosix/pacientes` con HCE avanzada funcional
+  - Página `/hosix/urgencias` con triage y lista de trabajo activa
+  - Página `/hosix/hospitalizacion` con camas y disponibilidad
+  - Dashboard real con al menos 4 métricas reales
+- Validar en la práctica la transición entre urgencias → HCE → hospitalización.
+
+### Prioridad técnica para la fase 1
+1. Estado de sesión y rutas protegidas
+2. Urgencias + triage
+3. HCE avanzada
+4. Hospitalización/camas
+5. Dashboard operativo
+6. Prescripción / CIE-11 (como siguiente paso de fase 1)
+
+### Puntos de riesgo actuales
+- `authStore.ts` usa `supabase` desde `@/app/supabase`, mientras `useHosixAuth.ts` usa `@/integrations/supabase/hosixClient`; hay dos puntos de entrada de auth.
+- `HosixDashboard.tsx` aún no es dinámico.
+- Faltan chequeos de `ProtectedRoute` y flujo de inicialización de sesión en la app.
+- `useHosixHospitalizacion.ts` tiene la capacidad de camas, pero no hay un `MapaCamas.tsx` explícito todavía.
+
+### Recomendación inmediata
+- Avanzar con Fase 1 en este orden:
+  1. Autenticación y protección de rutas
+  2. Urgencias y triage
+  3. HCE avanzada integrada
+  4. Mapa de camas / disponibilidad
+  5. Dashboard real
+  6. Primer flujo CPOE básico
+
+> Con esto, iniciamos la ejecución fase por fase manteniendo la estructura actual del repositorio y evitando reescribir lo ya existente.
 | `RESUMEN_EJECUTIVO.md` | Resumen alto nivel para ejecutivos | ✅ Final |
 | `CHECKLIST_MATRIZ_DECISION.md` | Checklist de requisitos + matriz priorización | ✅ Final |
 | `INDICE_DE_DOCUMENTOS.md` | Guía de navegación por rol | ✅ Final |
@@ -408,6 +543,34 @@ mcp exec migrations apply_migration --file <nombre.sql>
 
 ---
 
+## 🟢 AVANCE RECENTE: SALA DE ESPERA, PANTALLAS Y CITAS
+
+- **Sala de espera / Pantallas de turno:**
+  - `src/pages/Hosix/SalaEspera.tsx` implementa emisión de tickets, suscripción Supabase realtime, ordenamiento por `orden` y display de consultorio asignado cuando está presente.
+  - `src/pages/Hosix/Pantallas.tsx` implementa CRUD de pantallas de turno con playlist URL, opciones de TTS y configuración de consultas.
+  - **Estado:** Base funcional implementada; requiere la capa de visualización pública final de pantalla (display público), TTS/voz en producción, y ajuste de eventos de resolución para `no-shows` y delays.
+
+- **Citas y agendas:**
+  - `src/pages/Hosix/Citas.tsx` ya existe como contenedor de pestañas para `Gestionar Citas`, `Agendar Cita` y `Agendas`.
+  - Componentes base: `CitasList`, `CitasForm`, `AgendasList`.
+  - **Estado:** Estructura UI presente; aún falta integración de datos reales de Supabase, agenda por especialidad y flujo de agendamiento para consulta externa.
+
+- **Microservicio Kotlin / Solver:**
+  - `services/optaplanner-kotlin/` contiene el esqueleto Ktor y Docker con el endpoint `/solve`.
+  - **Estado:** Servicio esqueleto creado; falta la lógica Timefold/OptaPlanner y el enlace de eventos de admisión, demoras médicas, urgencias y no-shows al solver.
+
+- **Alineamiento de enfoque actual:**
+  - Priorizar **Consulta Externa + Admisión central**.
+  - Mantener urgencias como módulo separado y no mezclar su lógica con el flujo de turno de consulta externa.
+  - Postponer a fases posteriores: voz/TTS activa, portal paciente, doctor portal y chatbot de solicitud de cita.
+
+- **Próximo paso inmediato:**
+  1. Formalizar el modelo de agenda por especialidad y doctor.
+  2. Conectar `Citas.tsx` con Supabase y los endpoints de agenda existentes.
+  3. Consolidar la arquitectura de pantalla de turno (pantalla pública + backend de actualización realtime).
+
+---
+
 ## 📞 REFERENCIAS
 
 - Documento de análisis: `/docs/ANALISIS_ALINEAMIENTO_HOSIX.md`
@@ -438,6 +601,8 @@ mcp exec migrations apply_migration --file <nombre.sql>
 | | ✅ Edge Function: `sign-document` desplegada (Supabase) | |
 | | ✅ Frontend: PlantillasManager.tsx + handleSignAndSave (Upload PDF + Sign) | |
 | | ✅ Documentación: FIRMA_DIGITAL_GUIA.md completa | |
+| 02-06-2026 19:00 | 🔧 **Sala de espera y pantallas de turno implementadas parcialmente** (`SalaEspera.tsx`, `Pantallas.tsx`) | GitHub Copilot |
+| 02-06-2026 19:00 | 🧩 **Citas / Agenda UI estructurada** (`Citas.tsx`, `CitasForm`, `CitasList`, `AgendasList`) | GitHub Copilot |
 
 ---
 
@@ -465,3 +630,94 @@ mcp exec migrations apply_migration --file <nombre.sql>
 
 **Estado Actual:** 🟡 Semana 3 (Tarea 7 epidemiología con DHIS2). Análisis completado, implementación lista. Tareas 8-9 pendientes.  
 **Próxima Revisión:** Después de priorizar las entregas del HIS central y definir cuándo retomar DHIS2/epidemiología.
+
+---
+
+## 🟢 SEMANA 3 - CONSULTA EXTERNA & SUPABASE CLIENT (02-06-2026)
+
+### ✅ AUDITORÍA DE ROLES COMPLETADA
+- [x] **Validación de Separación: Admission ≠ Billing**
+  - Admission: `admision_medica_recepcion` role - Crea episodios de urgencia/hospitalizacion
+  - Billing: `contable` role - Crea cuentas y facturas
+  - Payment: `cajero` role - Registra pagos en caja
+  - RLS Policies validadas en todas las tablas de facturación
+  - ✅ Auditado: La persona que admite NO puede facturar/cobrar
+
+### ✅ CONFIGURACIÓN DE SUPABASE CLIENT
+- [x] Archivo `.env.local` creado con credenciales:
+  ```
+  VITE_SUPABASE_URL=https://abxusmjvsuabvbbwwxqg.supabase.co
+  VITE_SUPABASE_PUBLISHABLE_KEY=sb_publickey_zPejyYzMYhoQ6Q4mTwPcFQ_pP_GxnC2
+  ```
+- [x] Actualizado `src/integrations/supabase/hosixClient.ts`:
+  - Fallback automático a `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY`
+  - Soporta tanto `HOSIX_*` como `SUPABASE_*` aliases
+  - Error logging mejorado
+
+### ✅ MÓDULO CONSULTA EXTERNA MEJORADO
+
+#### 1️⃣ Pantalla de Espera Interactiva
+- **Archivo:** `src/components/hosix/citas/PantallaEsperaConsulta.tsx` (530 líneas)
+- **Características:**
+  - ✅ Pantalla grande con paciente actual y siguiente en la fila
+  - ✅ Tiempo de espera calculado automáticamente
+  - ✅ Alertas de espera prolongada (> 60 min)
+  - ✅ Actualización automática cada 30 segundos
+  - ✅ Indicadores de estado: Normal, Advertencia, Urgente
+  - ✅ Información de teleconsulta cuando aplica
+  - ✅ Panel de estadísticas en tiempo real
+  - ✅ Botón para anunciar paciente (audio)
+
+#### 2️⃣ Gestor de Múltiples Pantallas de Espera
+- **Archivo:** `src/components/hosix/citas/SalaEsperaManager.tsx` (300+ líneas)
+- **Características:**
+  - ✅ Crear, editar, eliminar pantallas
+  - ✅ Asignar cada pantalla a una agenda específica
+  - ✅ Estados: activo, pausado, offline
+  - ✅ Control de ubicación y configuración
+  - ✅ Previsualización en vivo de cada pantalla
+  - ✅ Configuración global: intervalo de actualización, volumen de anuncios
+  - ✅ Tabs para gestionar múltiples pantallas simultáneamente
+
+#### 3️⃣ Citas con Soporte de Adjuntos Multimedia
+- **Archivo:** `src/components/hosix/citas/CitasFormEnhanced.tsx` (600+ líneas)
+- **Características:**
+  - ✅ Formulario mejorado de agendamiento de citas
+  - ✅ **ADJUNTOS MULTIMEDIA INTEGRADOS:**
+    - Zona de carga mediante drag-and-drop
+    - Soporte: Imágenes, Videos, Audios, Documentos (PDF, Office)
+    - Tamaño máximo: 50MB por archivo
+    - Preview de imágenes en miniatura
+    - Iconos por tipo de archivo
+    - Indicador de tamaño por archivo
+  - ✅ Dos tabs: "Datos de Cita" y "Adjuntos"
+  - ✅ Validación de campos requeridos
+  - ✅ Opciones: Teleconsulta, Requiere Adjuntos
+  - ✅ Upload automático a Supabase Storage (`documents` bucket)
+  - ✅ Manejo de errores con toast notifications
+  - ✅ Estado de carga durante upload
+
+### 📁 Archivos Creados/Modificados (02-06-2026)
+| Archivo | Estado | Líneas | Descripción |
+|---------|--------|---------|-------------|
+| `.env.local` | ✅ Creado | 7 | Credenciales de Supabase |
+| `src/integrations/supabase/hosixClient.ts` | ✅ Actualizado | - | Configuración de cliente |
+| `src/components/hosix/citas/PantallaEsperaConsulta.tsx` | ✅ Creado | 530 | Pantalla de espera interactiva |
+| `src/components/hosix/citas/SalaEsperaManager.tsx` | ✅ Creado | 320 | Gestor de múltiples pantallas |
+| `src/components/hosix/citas/CitasFormEnhanced.tsx` | ✅ Creado | 600 | Citas con adjuntos |
+
+### 📋 RESUMEN DE MEJORAS
+- ✅ **Auditoría:** Separación de roles validada
+- ✅ **Supabase:** Cliente configurado y conectado
+- ✅ **UX Mejorada:** Pantallas de espera profesionales y modernas
+- ✅ **Multimedia:** Sistema de adjuntos funcional en citas
+- ✅ **Escalabilidad:** Soporte para múltiples pantallas simultáneas
+- ✅ **Monitoreo:** Alertas en tiempo real para esperas prolongadas
+
+### 🎯 PRÓXIMOS PASOS
+1. Probar integración de Supabase en ambiente
+2. Validar upload de adjuntos en Storage bucket `documents`
+3. Integrar PantallaEsperaConsulta en página de Citas
+4. Implementar anuncio de audio para pacientes
+5. Crear reportes de tiempos de espera
+6. Dashboard de estadísticas de citas

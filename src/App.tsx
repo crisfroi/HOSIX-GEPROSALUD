@@ -7,6 +7,7 @@ import { queryClient } from '@/lib/queryClient'
 
 import HosixLogin from '@/pages/Hosix/HosixLogin'
 import HosixLayout from '@/components/hosix/HosixLayout'
+import ProtectedRoute from '@/components/hosix/ProtectedRoute'
 import HosixDashboard from '@/pages/Hosix/HosixDashboard'
 import Pacientes from '@/pages/Hosix/Pacientes'
 import Epidemiologia from '@/pages/Hosix/Epidemiologia'
@@ -24,6 +25,8 @@ import Farmacia from '@/pages/Hosix/Farmacia'
 import Prescripcion from '@/pages/Hosix/Prescripcion'
 import Almacenes from '@/pages/Hosix/Almacenes'
 import Configuracion from '@/pages/Hosix/Configuracion'
+import SalaEspera from '@/pages/Hosix/SalaEspera'
+import PantallasManager from '@/pages/Hosix/Pantallas'
 
 function App() {
   return (
@@ -33,7 +36,7 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/hosix/login" element={<HosixLogin />} />
-            <Route path="/hosix" element={<HosixLayout />}>
+            <Route path="/hosix" element={<ProtectedRoute><HosixLayout /></ProtectedRoute>}>
               <Route index element={<HosixDashboard />} />
               <Route path="pacientes" element={<Pacientes />} />
               <Route path="epidemiologia" element={<Epidemiologia />} />
@@ -51,6 +54,8 @@ function App() {
               <Route path="prescripcion" element={<Prescripcion />} />
               <Route path="almacenes" element={<Almacenes />} />
               <Route path="configuracion" element={<Configuracion />} />
+              <Route path="sala-espera" element={<SalaEspera />} />
+              <Route path="pantallas" element={<PantallasManager />} />
             </Route>
           </Routes>
         </BrowserRouter>

@@ -12,6 +12,12 @@ export type UserRole =
   | 'ENFERMERO'
   | 'RECEPCIONISTA'
   | 'PACIENTE'
+  | 'FARMACISTA'
+  | 'ALMACEN'
+  | 'COMPRAS'
+  | 'CAJERO'
+  | 'SUPER_ADMIN'
+  | string
 
 export interface AuthUser {
   id: string
@@ -27,10 +33,11 @@ export interface AuthUser {
 interface AuthStore {
   user: AuthUser | null
   isLoading: boolean
+  isInitialized: boolean
   isAuthenticated: boolean
   setUser: (user: AuthUser | null) => void
   setLoading: (loading: boolean) => void
-  logout: () => void
+  logout: () => Promise<void>
   initialize: () => Promise<void>
 }
 
@@ -40,12 +47,18 @@ export const useAuthStore = create<AuthStore>()(
       (set) => ({
         user: null,
         isLoading: false,
+        isInitialized: false,
         isAuthenticated: false,
 
         setUser: (user) => {
+          if (!user) {
+            localStorage.removeItem('hosix_session')
+          }
+
           set({
             user,
             isAuthenticated: !!user,
+            isInitialized: true,
           })
         },
 
@@ -54,33 +67,38 @@ export const useAuthStore = create<AuthStore>()(
         },
 
         logout: async () => {
-          await supabase.auth.signOut()
+          try {
+            await supabase.auth.signOut()
+          } catch (err) {
+            console.warn('No se pudo cerrar sesión de Supabase:', err)
+          }
+
+          localStorage.removeItem('hosix_session')
           set({
             user: null,
             isAuthenticated: false,
+            isInitialized: true,
           })
         },
 
         initialize: async () => {
-          set({ isLoading: true })
+          set({ isLoading: true, isInitialized: false })
           try {
-            const { data } = await supabase.auth.getSession()
-            if (data.session?.user) {
-              // Aquí deberías obtener datos adicionales del usuario
-              // desde tu tabla hosix_usuarios
-              set({
-                user: {
-                  id: data.session.user.id,
-                  email: data.session.user.email || '',
-                  nombre: '',
-                  apellido: '',
-                  rol: 'PACIENTE',
-                },
-                isAuthenticated: true,
-              })
+            const sessionStr = localStorage.getItem('hosix_session')
+            if (sessionStr) {
+              const session = JSON.parse(sessionStr)
+              const user = session?.user as AuthUser | undefined
+              const expiresAt = session?.expiresAt ? new Date(session.expiresAt) : null
+
+              if (user && expiresAt && expiresAt > new Date()) {
+                set({ user, isAuthenticated: true, isInitialized: true })
+                return
+              }
             }
+          } catch (err) {
+            console.error('Error inicializando auth store:', err)
           } finally {
-            set({ isLoading: false })
+            set({ isLoading: false, isInitialized: true })
           }
         },
       }),

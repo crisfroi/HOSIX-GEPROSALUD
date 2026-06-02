@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useHosixCitas } from '@/hooks/useHosixCitas';
 import { useHosixPacientes } from '@/hooks/useHosixPacientes';
+import { useProfesionales } from '@/hooks/useProfesionales';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,8 +23,9 @@ import {
 import { Calendar, Clock, User, CheckCircle, X } from 'lucide-react';
 
 const CitasList: React.FC = () => {
-  const { citas, confirmarCita, cancelarCita, isUpdatingCita } = useHosixCitas();
+  const { citas, confirmarCita, cancelarCita, isUpdatingCita, agendas } = useHosixCitas();
   const { pacientes } = useHosixPacientes();
+  const profesionales = useProfesionales();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [estadoFilter, setEstadoFilter] = useState<string>('');
@@ -34,13 +36,15 @@ const CitasList: React.FC = () => {
   const filteredCitas = useMemo(() => {
     return citas.data?.filter(cita => {
       const paciente = pacientes.data?.find(p => p.id === cita.paciente_id);
+      const agenda = agendas.data?.find(a => a.id === cita.agenda_id);
       const matchesSearch = !searchTerm || 
-        paciente?.primer_nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        paciente?.ppi.toLowerCase().includes(searchTerm.toLowerCase());
+        paciente?.primer_nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        paciente?.ppi?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        agenda?.nombre?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesEstado = !estadoFilter || cita.estado === estadoFilter;
       return matchesSearch && matchesEstado;
     }) || [];
-  }, [citas.data, pacientes.data, searchTerm, estadoFilter]);
+  }, [citas.data, pacientes.data, agendas.data, searchTerm, estadoFilter]);
 
   const getPacienteNombre = (pacienteId: string) => {
     const paciente = pacientes.data?.find(p => p.id === pacienteId);
@@ -50,6 +54,10 @@ const CitasList: React.FC = () => {
   const getPacientePPI = (pacienteId: string) => {
     const paciente = pacientes.data?.find(p => p.id === pacienteId);
     return paciente?.ppi || '';
+  };
+
+  const getAgenda = (agendaId: string) => {
+    return agendas.data?.find(agenda => agenda.id === agendaId);
   };
 
   const getEstadoBadge = (estado: string) => {
@@ -221,12 +229,12 @@ const CitasList: React.FC = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Paciente</TableHead>
+                    <TableHead>Agenda / Profesional</TableHead>
                     <TableHead className="flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
                       Fecha y Hora
                     </TableHead>
                     <TableHead>Duración</TableHead>
-                    <TableHead>Motivo</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
@@ -241,9 +249,15 @@ const CitasList: React.FC = () => {
                         </div>
                         <div className="text-sm text-gray-500">{getPacientePPI(cita.paciente_id)}</div>
                       </TableCell>
+                      <TableCell>
+                        <div className="font-medium">{getAgenda(cita.agenda_id)?.nombre || 'Sin agenda'}</div>
+                        <div className="text-sm text-gray-500">
+                          {getAgenda(cita.agenda_id)?.tipo_agenda || '—'}
+                          {getAgenda(cita.agenda_id)?.profesional_id ? ` · ${profesionales.data?.find(p => p.id === getAgenda(cita.agenda_id)?.profesional_id)?.nombre_completo || 'Profesional no encontrado'}` : ''}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-sm">{formatFecha(cita.fecha_hora)}</TableCell>
                       <TableCell className="text-sm">{cita.duracion_minutos} min</TableCell>
-                      <TableCell className="text-sm">{cita.motivo || '-'}</TableCell>
                       <TableCell>{getEstadoBadge(cita.estado)}</TableCell>
                       <TableCell className="text-right space-x-2">
                         {canTakeAction(cita.estado) && (

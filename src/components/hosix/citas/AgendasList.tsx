@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useHosixCitas } from '@/hooks/useHosixCitas';
-import { useHosixPacientes } from '@/hooks/useHosixPacientes';
+import { useProfesionales } from '@/hooks/useProfesionales';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Plus, Calendar, Clock, Users } from 'lucide-react';
 
@@ -27,7 +26,7 @@ interface AgendaFormData {
 
 const AgendasList: React.FC = () => {
   const { agendas, createAgenda, isCreatingAgenda, citas, horarios } = useHosixCitas();
-  const { profesionales } = useHosixPacientes();
+  const profesionales = useProfesionales();
   
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState<AgendaFormData>({
@@ -174,27 +173,17 @@ const AgendasList: React.FC = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="tipo">Tipo de Agenda</Label>
-                      <Select value={formData.tipo_agenda} onValueChange={(value: any) => setFormData({ ...formData, tipo_agenda: value })}>
+                      <Label htmlFor="profesional">Profesional / Médico</Label>
+                      <Select value={formData.profesional_id} onValueChange={(value) => setFormData({ ...formData, profesional_id: value })}>
                         <SelectTrigger>
-                          <SelectValue />
+                          <SelectValue placeholder="Selecciona un profesional" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="consulta">Consulta</SelectItem>
-                          <SelectItem value="procedimiento">Procedimiento</SelectItem>
-                          <SelectItem value="teleconsulta">Teleconsulta</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="duracion">Duración Default (minutos)</Label>
-                      <Input
-                        id="duracion"
-                        type="number"
-                        value={formData.duracion_default_minutos}
+                          {profesionales.data?.map((profesional) => (
+                            <SelectItem key={profesional.id} value={profesional.id}>
+                              {profesional.nombre_completo || `${profesional.primer_nombre || ''} ${profesional.primer_apellido || ''}`.trim()} {profesional.especialidad ? `- ${profesional.especialidad}` : ''}
+                            </SelectItem>
+                          ))}
                         onChange={(e) => setFormData({ ...formData, duracion_default_minutos: parseInt(e.target.value) })}
                         min="5"
                         max="480"
@@ -272,6 +261,7 @@ const AgendasList: React.FC = () => {
                   <TableRow>
                     <TableHead>Código</TableHead>
                     <TableHead>Nombre</TableHead>
+                    <TableHead>Profesional</TableHead>
                     <TableHead>Tipo</TableHead>
                     <TableHead>Sala</TableHead>
                     <TableHead className="text-right">Duración</TableHead>
@@ -283,6 +273,9 @@ const AgendasList: React.FC = () => {
                     <TableRow key={agenda.id}>
                       <TableCell className="font-mono text-sm">{agenda.codigo}</TableCell>
                       <TableCell className="font-medium">{agenda.nombre}</TableCell>
+                      <TableCell>
+                        {profesionales.data?.find(p => p.id === agenda.profesional_id)?.nombre_completo || 'Sin médico asignado'}
+                      </TableCell>
                       <TableCell>
                         <Badge variant="outline">{agenda.tipo_agenda}</Badge>
                       </TableCell>

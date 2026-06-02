@@ -1,0 +1,377 @@
+create table public.profesionales_sanitarios (
+  id uuid not null default gen_random_uuid (),
+  nombre_completo text not null,
+  nombre text null,
+  apellidos text null,
+  fecha_nacimiento date null,
+  edad integer null,
+  genero text null,
+  nacionalidad text null,
+  gentilicio_femenino text null,
+  domicilio text null,
+  numero_dip text null,
+  numero_pasaporte text null,
+  telefono text null,
+  area_profesional text null,
+  especialidad text null,
+  fecha_validez_carnet date null,
+  nombre_centro text null,
+  provincia text null,
+  distrito text null,
+  distrito_sanitario text null,
+  categoria_centro text null,
+  tipo_sector character varying(20) null,
+  puesto_responsabilidad text null,
+  estado_solicitud character varying(20) null default 'Recibido'::character varying,
+  estado_trabajo character varying(50) null,
+  fecha_solicitud date null,
+  fecha_revision date null,
+  fecha_aprobacion date null,
+  motivo_rechazo text null,
+  ultima_modificacion_por text null,
+  titulacion_especifica_1 text null,
+  tipo_formacion_1 text null,
+  institucion_1 text null,
+  periodo_formacion_1 text null,
+  pais_formacion_1 text null,
+  titulacion_especifica_2 text null,
+  tipo_formacion_2 text null,
+  institucion_2 text null,
+  periodo_formacion_2 text null,
+  pais_formacion_2 text null,
+  titulo_adjunto_1 text null,
+  titulo_adjunto_2 text null,
+  pertenece_brigada_medica boolean null default false,
+  tipo_cooperacion text null,
+  brigada_cooperacion text null,
+  año_inicio_paro integer null,
+  meses_en_paro integer null default 0,
+  codigo_expediente text null,
+  url_codigo_barras text null,
+  foto_carnet text null,
+  url_pdf text null,
+  url_carta_resolucion text null,
+  pdf_formulario text null,
+  copia_dip text null,
+  copia_pasaporte text null,
+  created_at timestamp with time zone null default now(),
+  updated_at timestamp with time zone null default now(),
+  creada text null,
+  created_time text null,
+  id_profesional_unico text null,
+  fecha_alta date null,
+  numero_autonumerico_correlativo integer null,
+  id_distrito text null,
+  fecha_creacion_solicitud timestamp without time zone null default now(),
+  revisor_solicitud text null,
+  urgencia_solicitud text null default 'Media'::text,
+  notas_revision text null,
+  periodo_formacion text null,
+  año_graduacion integer null,
+  categoria_titulacion text null,
+  situacion_laboral text null default 'Activo'::text,
+  documentos_cargados jsonb null default '[]'::jsonb,
+  centro_salud_id uuid null,
+  documentos_adicionales text[] null,
+  fecha_emision date null default CURRENT_DATE,
+  fecha_caducidad date null default (CURRENT_DATE + '1 year'::interval),
+  url_carnet text null,
+  url_codigo_barras_expediente text null,
+  email text null,
+  notas_aprobacion text null,
+  fecha_rechazo text null,
+  distrito_sanitario_id text null,
+  funcion_publica boolean null,
+  estatus_funcionario text null,
+  numero_funcionario text null,
+  fecha_nombramiento date null,
+  fecha_inicio_trabajo date null,
+  institucion_formacion_id_1 uuid null,
+  fecha_generacion_resolucion date null,
+  numero_tarjeta_rfid character varying(10) null,
+  numero_enrolamiento_enno integer null,
+  pais_formacion_id_1 bigint null,
+  area_profesional_id uuid null,
+  ultimo_trabajo text null,
+  recien_graduado boolean null default false,
+  experiencia_laboral jsonb null default '[]'::jsonb,
+  tipo_profesional text null default 'sanitario'::text,
+  constraint profesionales_sanitarios_pkey primary key (id),
+  constraint profesionales_sanitarios_id_profesional_unico_key unique (id_profesional_unico),
+  constraint profesionales_sanitarios_codigo_expediente_key unique (codigo_expediente),
+  constraint fk_profesionales_centro_salud foreign KEY (centro_salud_id) references centros_salud (id) on update CASCADE on delete set null,
+  constraint profesionales_sanitarios_area_profesional_id_fkey foreign KEY (area_profesional_id) references areas_profesionales (id) on delete set null,
+  constraint profesionales_sanitarios_institucion_formacion_id_1_fkey foreign KEY (institucion_formacion_id_1) references instituciones_formacion (id),
+  constraint fk_profesional_centro_salud foreign KEY (centro_salud_id) references centros_salud (id) on delete set null,
+  constraint fk_profesional_distrito foreign KEY (distrito_sanitario) references distrito_sanitario (nombre_distrito),
+  constraint profesionales_sanitarios_id_distrito_fkey foreign KEY (id_distrito) references distrito_sanitario (nombre_distrito),
+  constraint fk_prof_pais_formacion foreign KEY (pais_formacion_id_1) references nacionalidades_mundo (id) on delete RESTRICT,
+  constraint profesionales_sanitarios_tipo_profesional_check check (
+    (
+      tipo_profesional = any (
+        array[
+          'sanitario'::text,
+          'administrativo'::text,
+          'camillero'::text,
+          'subalterno'::text,
+          'odepac'::text,
+          'otro'::text
+        ]
+      )
+    )
+  ),
+  constraint profesionales_sanitarios_estado_solicitud_check check (
+    (
+      (estado_solicitud)::text = any (
+        array[
+          ('Pendiente'::character varying)::text,
+          ('Aprobado'::character varying)::text,
+          ('Rechazado'::character varying)::text,
+          ('Revisando'::character varying)::text,
+          ('Pendiente de Firma'::character varying)::text,
+          ('Recibido'::character varying)::text,
+          ('Rechazada'::character varying)::text
+        ]
+      )
+    )
+  ),
+  constraint profesionales_sanitarios_estatus_funcionario_check check (
+    (
+      estatus_funcionario = any (array['nombrado'::text, 'no_nombrado'::text])
+    )
+  )
+) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_funcion_publica on public.profesionales_sanitarios using btree (funcion_publica) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_area_profesional on public.profesionales_sanitarios using btree (area_profesional) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_estado_solicitud on public.profesionales_sanitarios using btree (estado_solicitud) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_provincia on public.profesionales_sanitarios using btree (provincia) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_distrito on public.profesionales_sanitarios using btree (distrito) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_tipo_sector on public.profesionales_sanitarios using btree (tipo_sector) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_fecha_validez on public.profesionales_sanitarios using btree (fecha_validez_carnet) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_nombre_completo on public.profesionales_sanitarios using btree (nombre_completo) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_codigo_expediente on public.profesionales_sanitarios using btree (codigo_expediente) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_id_unico on public.profesionales_sanitarios using btree (id_profesional_unico) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_genero on public.profesionales_sanitarios using btree (genero) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_centro_salud_id on public.profesionales_sanitarios using btree (centro_salud_id) TABLESPACE pg_default;
+
+create index IF not exists idx_prof_aprobado_distrito_sanitario on public.profesionales_sanitarios using btree (distrito_sanitario) TABLESPACE pg_default
+where
+  ((estado_solicitud)::text = 'Aprobado'::text);
+
+create index IF not exists idx_prof_aprobado_distrito on public.profesionales_sanitarios using btree (distrito) TABLESPACE pg_default
+where
+  ((estado_solicitud)::text = 'Aprobado'::text);
+
+create index IF not exists idx_prof_aprobado_area on public.profesionales_sanitarios using btree (area_profesional) TABLESPACE pg_default
+where
+  ((estado_solicitud)::text = 'Aprobado'::text);
+
+create index IF not exists idx_prof_aprobado_categoria_centro on public.profesionales_sanitarios using btree (categoria_centro) TABLESPACE pg_default
+where
+  ((estado_solicitud)::text = 'Aprobado'::text);
+
+create index IF not exists idx_prof_aprobado_categoria_titulacion on public.profesionales_sanitarios using btree (categoria_titulacion) TABLESPACE pg_default
+where
+  ((estado_solicitud)::text = 'Aprobado'::text);
+
+create index IF not exists idx_prof_aprobado_nombre_centro on public.profesionales_sanitarios using btree (nombre_centro) TABLESPACE pg_default
+where
+  ((estado_solicitud)::text = 'Aprobado'::text);
+
+create index IF not exists idx_prof_aprobado_ano_graduacion on public.profesionales_sanitarios using btree ("año_graduacion") TABLESPACE pg_default
+where
+  ((estado_solicitud)::text = 'Aprobado'::text);
+
+create index IF not exists idx_prof_aprobado_edad on public.profesionales_sanitarios using btree (edad) TABLESPACE pg_default
+where
+  ((estado_solicitud)::text = 'Aprobado'::text);
+
+create index IF not exists idx_prof_aprobado_provincia on public.profesionales_sanitarios using btree (provincia) TABLESPACE pg_default
+where
+  ((estado_solicitud)::text = 'Aprobado'::text);
+
+create index IF not exists idx_prof_aprobado_genero on public.profesionales_sanitarios using btree (genero) TABLESPACE pg_default
+where
+  ((estado_solicitud)::text = 'Aprobado'::text);
+
+create index IF not exists idx_prof_aprobado_tipo_sector on public.profesionales_sanitarios using btree (tipo_sector) TABLESPACE pg_default
+where
+  ((estado_solicitud)::text = 'Aprobado'::text);
+
+create index IF not exists idx_prof_aprobado_pais1 on public.profesionales_sanitarios using btree (pais_formacion_1) TABLESPACE pg_default
+where
+  ((estado_solicitud)::text = 'Aprobado'::text);
+
+create index IF not exists idx_prof_aprobado_pais2 on public.profesionales_sanitarios using btree (pais_formacion_2) TABLESPACE pg_default
+where
+  ((estado_solicitud)::text = 'Aprobado'::text);
+
+create index IF not exists idx_prof_aprobado_inst1 on public.profesionales_sanitarios using btree (institucion_1) TABLESPACE pg_default
+where
+  ((estado_solicitud)::text = 'Aprobado'::text);
+
+create index IF not exists idx_prof_aprobado_inst2 on public.profesionales_sanitarios using btree (institucion_2) TABLESPACE pg_default
+where
+  ((estado_solicitud)::text = 'Aprobado'::text);
+
+create index IF not exists idx_prof_created_at on public.profesionales_sanitarios using btree (created_at) TABLESPACE pg_default;
+
+create index IF not exists idx_prof_nombre_trgm on public.profesionales_sanitarios using gin (nombre_completo gin_trgm_ops) TABLESPACE pg_default;
+
+create index IF not exists idx_prof_area_trgm on public.profesionales_sanitarios using gin (area_profesional gin_trgm_ops) TABLESPACE pg_default;
+
+create index IF not exists idx_prof_nombre_centro_trgm on public.profesionales_sanitarios using gin (nombre_centro gin_trgm_ops) TABLESPACE pg_default;
+
+create index IF not exists idx_prof_id_unico_trgm on public.profesionales_sanitarios using gin (id_profesional_unico gin_trgm_ops) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_sanitarios_id_distrito on public.profesionales_sanitarios using btree (id_distrito) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_area_profesional_id on public.profesionales_sanitarios using btree (area_profesional_id) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_rfid on public.profesionales_sanitarios using btree (numero_tarjeta_rfid) TABLESPACE pg_default
+where
+  (numero_tarjeta_rfid is not null);
+
+create index IF not exists idx_profesionales_distrito_sanitario on public.profesionales_sanitarios using btree (distrito_sanitario) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_ano_graduacion on public.profesionales_sanitarios using btree ("año_graduacion") TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_categoria_titulacion on public.profesionales_sanitarios using btree (categoria_titulacion) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_categoria_centro on public.profesionales_sanitarios using btree (categoria_centro) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_nombre_centro on public.profesionales_sanitarios using btree (nombre_centro) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_created_at on public.profesionales_sanitarios using btree (created_at desc) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_edad on public.profesionales_sanitarios using btree (edad) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_pais_formacion_1 on public.profesionales_sanitarios using btree (pais_formacion_1) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_pais_formacion_2 on public.profesionales_sanitarios using btree (pais_formacion_2) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_institucion_1 on public.profesionales_sanitarios using btree (institucion_1) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_institucion_2 on public.profesionales_sanitarios using btree (institucion_2) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_centro_area_estado on public.profesionales_sanitarios using btree (
+  centro_salud_id,
+  area_profesional,
+  estado_solicitud
+) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_nombre_completo_trgm on public.profesionales_sanitarios using gin (nombre_completo gin_trgm_ops) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_area_profesional_trgm on public.profesionales_sanitarios using gin (area_profesional gin_trgm_ops) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_id_profesional_unico_trgm on public.profesionales_sanitarios using gin (id_profesional_unico gin_trgm_ops) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_nombre_centro_trgm on public.profesionales_sanitarios using gin (nombre_centro gin_trgm_ops) TABLESPACE pg_default;
+
+create index IF not exists idx_profesionales_pais_formacion_id_1 on public.profesionales_sanitarios using btree (pais_formacion_id_1) TABLESPACE pg_default;
+
+create trigger actualizar_conteo_profesionales_trigger
+after INSERT
+or DELETE
+or
+update on profesionales_sanitarios for EACH row
+execute FUNCTION actualizar_conteo_profesionales_aprobados ();
+
+create trigger set_fecha_validez_carnet BEFORE INSERT
+or
+update on profesionales_sanitarios for EACH row
+execute FUNCTION update_fecha_validez_carnet ();
+
+create trigger tr_generar_carnet_automatico
+after
+update on profesionales_sanitarios for EACH row
+execute FUNCTION trigger_generar_carnet_automatico ();
+
+create trigger trg_generar_url_codigo_barras BEFORE INSERT
+or
+update OF categoria_titulacion,
+id_profesional_unico,
+estado_solicitud on profesionales_sanitarios for EACH row
+execute FUNCTION generar_url_codigo_barras_trigger ();
+
+create trigger trg_generate_enno BEFORE INSERT
+or
+update on profesionales_sanitarios for EACH row
+execute FUNCTION generate_enno_on_approval ();
+
+create trigger trg_profesionales_sync_area_text BEFORE INSERT
+or
+update OF area_profesional_id on profesionales_sanitarios for EACH row
+execute FUNCTION sync_area_profesional_text ();
+
+create trigger trg_profesionales_try_link_area BEFORE INSERT
+or
+update OF area_profesional on profesionales_sanitarios for EACH row
+execute FUNCTION try_link_area_profesional_id ();
+
+create trigger trg_set_area_profesional_uppercase BEFORE INSERT
+or
+update on profesionales_sanitarios for EACH row
+execute FUNCTION set_area_profesional_uppercase ();
+
+create trigger trg_set_resolucion_date BEFORE
+update on profesionales_sanitarios for EACH row
+execute FUNCTION set_fecha_generacion_resolucion ();
+
+create trigger trigger_actualizar_busqueda_profesionales_publica
+after INSERT
+or
+update on profesionales_sanitarios for EACH row
+execute FUNCTION actualizar_busqueda_profesionales_publica ();
+
+create trigger "trigger_calcular_año_fin_formacion" BEFORE INSERT
+or
+update on profesionales_sanitarios for EACH row
+execute FUNCTION "calcular_año_fin_formacion" ();
+
+create trigger trigger_calcular_edad BEFORE INSERT
+or
+update on profesionales_sanitarios for EACH row
+execute FUNCTION calcular_edad ();
+
+create trigger trigger_crear_asignacion_centro
+after INSERT on profesionales_sanitarios for EACH row
+execute FUNCTION crear_asignacion_centro ();
+
+create trigger trigger_generar_barcode_after_id_generation
+after
+update on profesionales_sanitarios for EACH row
+execute FUNCTION generar_barcode_after_id_generation ();
+
+create trigger trigger_generar_id_profesional BEFORE INSERT
+or
+update on profesionales_sanitarios for EACH row
+execute FUNCTION generar_id_profesional ();
+
+create trigger trigger_set_codigo_expediente BEFORE INSERT on profesionales_sanitarios for EACH row
+execute FUNCTION set_codigo_expediente_on_insert ();
+
+create trigger trigger_set_fecha_generacion_resolucion BEFORE
+update on profesionales_sanitarios for EACH row
+execute FUNCTION set_fecha_generacion_resolucion ();
+
+create trigger trigger_url_codigo_barras_expediente BEFORE INSERT
+or
+update on profesionales_sanitarios for EACH row
+execute FUNCTION trigger_generar_url_codigo_barras_expediente ();
+
+create trigger update_profesionales_updated_at BEFORE
+update on profesionales_sanitarios for EACH row
+execute FUNCTION update_updated_at_column ();

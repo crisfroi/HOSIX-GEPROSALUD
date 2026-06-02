@@ -2,22 +2,23 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
 export const HOSIX_SUPABASE_URL =
-  import.meta.env.VITE_HOSIX_SUPABASE_URL ||
   import.meta.env.VITE_SUPABASE_URL ||
-  'https://wdieynendfjbkbhfovrx.supabase.co';
+  import.meta.env.VITE_HOSIX_SUPABASE_URL ||
+  'https://abxusmjvsuabvbbwwxqg.supabase.co';
 export const HOSIX_SUPABASE_ANON_KEY =
-  import.meta.env.VITE_HOSIX_SUPABASE_ANON_KEY ||
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
   import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkaWV5bmVuZGZqYmtiaGZvdnJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3ODI5MjEsImV4cCI6MjA2NjM1ODkyMX0.yFnLHavy8wzVjlg3sAI2mEG-XGDCV5FSr7OQsMefxL8';
+  import.meta.env.VITE_HOSIX_SUPABASE_ANON_KEY ||
+  'sb_publishable_zPejyYzMYhoQ6Q4mTwPcFQ_pP_GxnC2';
 
 if (!HOSIX_SUPABASE_URL) {
-  console.error('❌ VITE_HOSIX_SUPABASE_URL or VITE_SUPABASE_URL is not defined');
+  console.error('❌ VITE_SUPABASE_URL or VITE_HOSIX_SUPABASE_URL is not defined');
   throw new Error('Missing HOSIX Supabase URL environment variable');
 }
 
 if (!HOSIX_SUPABASE_ANON_KEY) {
-  console.error('❌ VITE_HOSIX_SUPABASE_ANON_KEY or VITE_SUPABASE_ANON_KEY is not defined');
-  throw new Error('Missing HOSIX Supabase anon key environment variable');
+  console.error('❌ VITE_SUPABASE_PUBLISHABLE_KEY or VITE_SUPABASE_ANON_KEY is not defined');
+  throw new Error('Missing HOSIX Supabase key environment variable');
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -142,6 +143,62 @@ export const executeSupabaseQuery = async <T>(
       },
     };
   }
+};
+
+export const validateCentroMembership = async (centroSaludId: string) => {
+  if (!centroSaludId) {
+    return {
+      valid: false,
+      error: 'Usuario sin centro de salud asignado. Se requiere centro para continuar.',
+    };
+  }
+
+  const { data: centro, error: centroError } = await hosixSupabase
+    .from('centros_salud')
+    .select('id, nombre, estado')
+    .eq('id', centroSaludId)
+    .single();
+
+  if (centroError || !centro) {
+    return {
+      valid: false,
+      error: 'El centro de salud asignado no existe o no es accesible.',
+    };
+  }
+
+  const estado = (centro.estado || '').toString().toLowerCase();
+  if (estado !== 'activo') {
+    return {
+      valid: false,
+      error: 'El centro de salud asignado no está activo.',
+    };
+  }
+
+  const { count, error: profesionalesError } = await hosixSupabase
+    .from('profesionales_sanitarios')
+    .select('id', { count: 'exact', head: true })
+    .eq('centro_salud_id', centroSaludId)
+    .eq('estado_solicitud', 'Aprobado');
+
+  if (profesionalesError) {
+    return {
+      valid: false,
+      error: 'Error al validar los profesionales del centro de salud.',
+    };
+  }
+
+  if (!count || count < 1) {
+    return {
+      valid: false,
+      error: 'El centro de salud no tiene profesionales sanitarios aprobados registrados.',
+    };
+  }
+
+  return {
+    valid: true,
+    centroNombre: centro.nombre,
+    profesionalCount: count,
+  };
 };
 
 export const getConnectionStatus = () => ({

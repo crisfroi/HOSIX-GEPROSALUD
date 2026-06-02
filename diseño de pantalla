@@ -1,0 +1,9 @@
+┌───────────────────────────────┬──────────────────────┐
+ │                               │     TURNO ACTUAL     │
+ │    Componente <ReactPlayer>   │        A-104         │
+ │  (Videos de salud, anuncios,  │     Consultorio 2    │
+ │       o listas de YouTube)    ├──────────────────────┤
+ │                               │   ÚLTIMOS LLAMADOS   │
+ │                               │  A-103 -> Box 1      │
+ │                               │  B-45  -> Triaje     │
+ └───────────────────────────────┴──────────────────────┘

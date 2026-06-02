@@ -26,6 +26,10 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import useHosixMedicos from '@/hooks/useHosixMedicos'
 import { useProfesionales } from '@/hooks/useProfesionales'
+import { useHosixFacturacion } from '@/hooks/useHosixFacturacion'
+import { toast } from 'sonner'
+import { supabase } from '@/integrations/supabase/hosixClient'
+import { useHosixAuditoria } from '@/hooks/useHosixAuditoria'
 import { Loader2, Clock, AlertCircle, CheckCircle2, Eye } from 'lucide-react'
 import {
   Dialog,
@@ -53,6 +57,7 @@ export const WorklistMedicos: React.FC = () => {
   const [dialogo, setDialogo] = useState(false)
 
   const { data: ordenes = [], isLoading, error: ordenesError } = useOrdenesMedicas(filtroEstado === 'all' ? '' : filtroEstado)
+  const { cuentas } = useHosixFacturacion()
 
   // Filtrar órdenes
   const ordenesFiltradas = ordenes.filter((orden) => {
@@ -96,6 +101,10 @@ export const WorklistMedicos: React.FC = () => {
     return colors[prioridad] || 'bg-gray-100 text-gray-800'
   }
 
+  // Timers para atención (cliente): si el médico olvida completar, avanzamos automáticamente
+  const attendanceTimers = (globalThis as any).__hosix_attendance_timers || new Map<string, any>()
+  ;(globalThis as any).__hosix_attendance_timers = attendanceTimers
+
   const getTiempoEspera = (fechaCreacion: string): string => {
     const ahora = new Date()
     const fecha = new Date(fechaCreacion)
@@ -108,7 +117,147 @@ export const WorklistMedicos: React.FC = () => {
     return `${dias}d`
   }
 
-  const handleCambiarEstado = (ordenId: string, nuevoEstado: string) => {
+  const { registrarEvento } = useHosixAuditoria()
+
+  const handleCambiarEstado = async (ordenId: string, nuevoEstado: string, orden?: any, isAuto: boolean = false) => {
+    if (nuevoEstado === 'en_atención' && orden?.tipo_orden === 'consulta') {
+      const cuentaPendiente = cuentas.find(
+        (cuenta: any) =>
+          cuenta.paciente_id === orden.paciente_id &&
+          cuenta.estado === 'abierta' &&
+          cuenta.saldo_pendiente > 0
+      )
+
+      if (cuentaPendiente) {
+        toast.error(
+          `El paciente debe pagar la tarifa de consulta antes de entrar en atención. Cuenta: ${cuentaPendiente.numero_cuenta}`
+        )
+        return
+      }
+
+      try {
+        // Validar que exista un ticket pendiente para el paciente
+        const { data: ticketRows, error: ticketError } = await supabase
+          .from('hosix_tickets')
+          .select('*')
+          .eq('paciente_id', orden.paciente_id)
+          .in('estado', ['pendiente', 'llamado'])
+          .order('orden', { ascending: true })
+          .order('created_at', { ascending: true })
+          .limit(1)
+
+        if (ticketError) throw ticketError
+
+        const ticket = ticketRows && ticketRows.length > 0 ? ticketRows[0] : null
+        if (!ticket) {
+          toast.error('No se encontró ticket válido para este paciente en la cola')
+          return
+        }
+
+        // Marcar inicio de atención en el ticket
+        const startedAt = new Date().toISOString()
+        const { error: updateError } = await supabase
+          .from('hosix_tickets')
+          .update({ estado: 'en_atención', attendance_started_at: startedAt, asignado_a: (await supabase.auth.getUser()).data.user?.id })
+          .eq('id', ticket.id)
+
+        if (updateError) throw updateError
+
+        // Registrar auditoría
+        try {
+          await registrarEvento('INICIAR_ATENCION', 'hosix_tickets', ticket.id, null, { ordenId, pacienteId: orden.paciente_id, startedAt })
+        } catch (auditErr) {
+          console.warn('No se pudo registrar auditoría de inicio de atención', auditErr)
+        }
+        } catch (err: any) {
+        console.error('Error validando ticket / iniciando atención:', err)
+        toast.error(err?.message || 'Error iniciando atención')
+        return
+      }
+
+        // Iniciar temporizador de atención (solo si no es ejecución automática)
+        if (!isAuto) {
+          const timeoutMinutes = 15 // configurable
+          if (attendanceTimers.has(ordenId)) {
+            clearTimeout(attendanceTimers.get(ordenId))
+            attendanceTimers.delete(ordenId)
+          }
+          const t = setTimeout(() => {
+            // Intentar completar automáticamente la orden si sigue en atención
+            handleCambiarEstado(ordenId, 'completada', orden, true)
+          }, timeoutMinutes * 60 * 1000)
+          attendanceTimers.set(ordenId, t)
+        }
+    }
+
+    if (nuevoEstado === 'completada' && orden?.tipo_orden === 'consulta') {
+      // Limpiar temporizador si existe
+      if (attendanceTimers.has(ordenId)) {
+        clearTimeout(attendanceTimers.get(ordenId))
+        attendanceTimers.delete(ordenId)
+      }
+      try {
+        // Encontrar ticket en atención para este paciente
+        const { data: ticketRows, error: ticketError } = await supabase
+          .from('hosix_tickets')
+          .select('*')
+          .eq('paciente_id', orden.paciente_id)
+          .eq('estado', 'en_atención')
+          .limit(1)
+
+        if (ticketError) throw ticketError
+
+        const ticket = ticketRows && ticketRows.length > 0 ? ticketRows[0] : null
+        if (ticket) {
+          const endedAt = new Date().toISOString()
+          const { error: finishError } = await supabase
+            .from('hosix_tickets')
+            .update({ estado: 'completado', attendance_ended_at: endedAt })
+            .eq('id', ticket.id)
+
+          if (finishError) throw finishError
+
+          try {
+            await registrarEvento('FINALIZAR_ATENCION', 'hosix_tickets', ticket.id, null, { ordenId, pacienteId: orden.paciente_id, endedAt })
+          } catch (auditErr) {
+            console.warn('No se pudo registrar auditoría de finalización de atención', auditErr)
+          }
+        }
+
+        // Llamar al siguiente paciente en cola
+        const { data: nextRows, error: nextError } = await supabase
+          .from('hosix_tickets')
+          .select('*')
+          .eq('estado', 'pendiente')
+          .order('orden', { ascending: true })
+          .order('created_at', { ascending: true })
+          .limit(1)
+
+        if (nextError) throw nextError
+
+        const nextTicket = nextRows && nextRows.length > 0 ? nextRows[0] : null
+        if (nextTicket) {
+          const llamadoAt = new Date().toISOString()
+          const { error: callError } = await supabase
+            .from('hosix_tickets')
+            .update({ estado: 'llamado', llamado_at: llamadoAt })
+            .eq('id', nextTicket.id)
+
+          if (callError) throw callError
+
+          try {
+            await registrarEvento('LLAMAR_SIGUIENTE', 'hosix_tickets', nextTicket.id, null, { llamadoAt })
+          } catch (auditErr) {
+            console.warn('No se pudo registrar auditoría de llamada al siguiente', auditErr)
+          }
+        }
+      } catch (err: any) {
+        console.error('Error finalizando atención / llamando siguiente:', err)
+        toast.error(err?.message || 'Error procesando fin de atención')
+        return
+      }
+    }
+
     actualizarEstadoOrdenMutation.mutate({ ordenId, nuevoEstado })
   }
 
@@ -340,7 +489,7 @@ export const WorklistMedicos: React.FC = () => {
                             <Button
                               size="sm"
                               variant="default"
-                              onClick={() => handleCambiarEstado(orden.id, 'en_atención')}
+                              onClick={() => handleCambiarEstado(orden.id, 'en_atención', orden)}
                               disabled={actualizarEstadoOrdenMutation.isPending}
                             >
                               Atender

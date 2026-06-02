@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,7 +8,9 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
+import { useHosixFacturacion } from '@/hooks/useHosixFacturacion'
 import { supabase } from '@/integrations/supabase/hosixClient'
+import { solveAssignment } from '@/lib/optaplannerClient'
 import { AlertCircle, CheckCircle, Users, LogIn } from 'lucide-react'
 
 interface AdmisionCentralFormProps {
@@ -45,6 +47,11 @@ export default function AdmisionCentralForm({
   })
 
   const [searchPaciente, setSearchPaciente] = useState('')
+
+  const {
+    crearCuentaConFacturaAsync,
+    isCreatingCuentaConFactura,
+  } = useHosixFacturacion()
 
   // ============================================================
   // CARGAR PACIENTE POR ID
@@ -245,6 +252,72 @@ export default function AdmisionCentralForm({
       if (error) throw error
 
       const episodioId = data?.[0]?.id
+      let createdTicket: any = null
+
+      // Crear cuenta de facturación y factura de tarifa de consulta antes de continuar
+      let facturaCreada: any = null
+      try {
+        const tarifa = await obtenerTarifaServicio({
+          servicio_id: formData.servicioId,
+          aseguradora_id: paciente.aseguradora_principal_id,
+        })
+
+        const result = await crearCuentaConFacturaAsync({
+          paciente_id: paciente.id,
+          episodio_id: episodioId,
+          aseguradora_id: paciente.aseguradora_principal_id || undefined,
+          servicio_id: formData.servicioId,
+          descripcion: tarifa.descripcion,
+          cantidad: 1,
+          precio_unitario: tarifa.precio,
+        })
+
+        facturaCreada = result?.factura
+      } catch (facturacionError) {
+        console.error('Error creando cuenta o factura:', facturacionError)
+        throw new Error(
+          facturacionError instanceof Error
+            ? facturacionError.message
+            : 'Error al registrar facturación de consulta'
+        )
+      }
+
+      if (formData.tipoIngreso !== 'hospitalizacion') {
+        const { data: lastTicket, error: lastTicketError } = await supabase
+          .from('hosix_tickets')
+          .select('numero')
+          .order('numero', { ascending: false })
+          .limit(1)
+
+        if (lastTicketError) throw lastTicketError
+
+        const nextTicketNumber = (lastTicket && lastTicket.length > 0) ? (lastTicket[0].numero || 0) + 1 : 1
+        const nuevoTicket = {
+          numero: nextTicketNumber,
+          tipo: formData.tipoIngreso,
+          estado: 'pendiente',
+          paciente_id: paciente.id,
+          servicio_id: formData.servicioId,
+          prioridad: formData.tipoIngreso === 'urgencias' ? 'urgente' : 'normal'
+        }
+
+        const { data: ticketData, error: ticketError } = await supabase
+          .from('hosix_tickets')
+          .insert([nuevoTicket])
+          .select('*')
+
+        if (ticketError) throw ticketError
+        createdTicket = ticketData?.[0]
+      }
+
+      // Recalcular cola y optimizar con el solver de Timefold cada vez que llega un nuevo paciente
+      if (formData.tipoIngreso !== 'hospitalizacion') {
+        try {
+          await recalculateQueue(createdTicket?.id)
+        } catch (solverError) {
+          console.warn('⚠️ Error recalcando cola de espera:', solverError)
+        }
+      }
 
       // ASIGNAR MÉDICO EN TURNO SI ES CONSULTA EXTERNA
       if (formData.tipoIngreso === 'externa') {
@@ -302,7 +375,7 @@ export default function AdmisionCentralForm({
 
       toast({
         title: '✅ Paciente Admitido',
-        description: `${paciente.primer_nombre} ${paciente.primer_apellido} ha sido admitido exitosamente`,
+        description: `${paciente.primer_nombre} ${paciente.primer_apellido} ha sido admitido exitosamente. ${facturaCreada ? `Factura ${facturaCreada.numero_factura} generada.` : ''}`,
         variant: 'default'
       })
 
@@ -327,6 +400,80 @@ export default function AdmisionCentralForm({
     } finally {
       setGuardando(false)
     }
+  }
+
+  const buildSolverPayload = async (newTicketId?: string) => {
+    const { data: tickets, error: ticketsError } = await supabase
+      .from('hosix_tickets')
+      .select('*')
+      .eq('estado', 'pendiente')
+      .order('orden', { ascending: true })
+      .order('created_at', { ascending: true })
+
+    if (ticketsError) throw ticketsError
+
+    const { data: clinicians, error: cliniciansError } = await supabase
+      .from('profesionales_disponibles')
+      .select('*')
+      .eq('esta_en_turno', true)
+      .eq('activo', true)
+
+    if (cliniciansError) throw cliniciansError
+
+    return {
+      patients: (tickets || []).map((ticket: any) => ({
+        id: ticket.id,
+        nombre: ticket.paciente_id,
+        tipo: ticket.tipo,
+        prioridad: ticket.prioridad || 'normal',
+        especialidadNecesaria: null,
+        esEmbarazada: ticket.es_embarazada || false,
+        createdAt: ticket.created_at
+      })),
+      clinicians: (clinicians || []).map((clinician: any) => ({
+        id: clinician.id,
+        nombre: clinician.nombre || clinician.apellido || '',
+        especialidades: clinician.especialidades || [],
+        ubicacion: clinician.ubicacion || null,
+        estaEnTurno: clinician.esta_en_turno,
+        activo: clinician.activo
+      })),
+      events: [
+        {
+          type: 'admission',
+          source: 'admision_central',
+          timestamp: new Date().toISOString(),
+          details: {
+            ticketId: newTicketId,
+            pacienteId: paciente?.id,
+            tipoIngreso: formData.tipoIngreso,
+            servicioId: formData.servicioId
+          }
+        }
+      ],
+      horizonMinutes: 60
+    }
+  }
+
+  const recalculateQueue = async (ticketId?: string) => {
+    const payload = await buildSolverPayload(ticketId)
+    const solverResponse = await solveAssignment(payload)
+    const assignments = solverResponse?.assignments || []
+
+    if (assignments.length === 0) {
+      return
+    }
+
+    await Promise.all(assignments.map((assignment: any) => {
+      return supabase
+        .from('hosix_tickets')
+        .update({
+          orden: assignment.order,
+          asignado_a: assignment.clinicianId,
+          consultorio: assignment.consultorio
+        })
+        .eq('id', assignment.ticketId)
+    }))
   }
 
   return (
@@ -549,7 +696,7 @@ export default function AdmisionCentralForm({
       {/* BOTÓN ADMITIR */}
       <Button
         type="submit"
-        disabled={guardando || !paciente || !formData.servicioId}
+        disabled={guardando || !paciente || !formData.servicioId || isCreatingCuentaConFactura}
         className="w-full h-10 text-base"
       >
         {guardando ? '⏳ Procesando...' : '✅ Admitir Paciente'}

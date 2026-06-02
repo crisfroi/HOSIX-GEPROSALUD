@@ -57,7 +57,89 @@
   - Métricas: Cobranza, morosidad, top 10 deudas
   - Tabla detallada: Paciente, aseguradora, facturado, pagado, pendiente, morosidad
 
-### 🟡 SEMANA 3 - EN PROGRESO
+### � SEMANA 3 - ARQUITECTURA AVANZADA ✅ COMPLETADO (02-06-2026)
+- [x] **Tarea: RLS & Multi-Tenancy** ✅ (02-06-2026)
+  - Migración: `supabase/migrations/20260602_020_rls_multi_hospital.sql` aplicada
+  - RLS Policies configuradas para 8 tablas (pacientes, episodios, usuarios, camas, historia_clinica, diagnósticos, consultas, facturas)
+  - Tabla de auditoría creada: `hosix_auditoria_accesos` con triggers para logging
+  - Aislamiento completo por `centro_salud_id` en todas las operaciones
+
+- [x] **Tarea: Realtime Subscriptions** ✅ (02-06-2026)
+  - Migración: `supabase/migrations/20260602_021_habilitar_realtime.sql`
+  - Publicación PostgreSQL `hosix_realtime` creada
+  - Tablas habilitadas para Realtime: camas, alertas, episodios, seguimiento_contactos, signos_vitales, ordenes_medicas, interconsultas
+  - Permite suscripciones en tiempo real para monitoreo clínico
+
+- [x] **Tarea: Generación Automática de Tipos TS** ✅ (02-06-2026)
+  - Script bash: `scripts/generate-types.sh`
+  - Ejecutar: `bash scripts/generate-types.sh` genera `src/types/database.ts`
+  - Re-exportaciones en `src/types/index.ts`
+  - Tipos sincronizados directamente con esquema Supabase
+
+- [x] **Tarea: React Query + Zustand Setup** ✅ (02-06-2026)
+  - Query Client: `src/lib/queryClient.ts` configurado con cache de 5/10 min
+  - Stores Zustand creados:
+    - `src/stores/authStore.ts` - Persistencia de sesión y usuario
+    - `src/stores/notificationStore.ts` - Sistema global de notificaciones
+    - `src/stores/uiStore.ts` - Estado de UI (sidebar, mobile)
+  - Todos con devtools y middleware de Zustand
+
+- [x] **Tarea: Router v6 + ProtectedRoute + Code Splitting** ✅ (02-06-2026)
+  - Router: `src/router/index.tsx` con lazy loading en todas las rutas
+  - ProtectedRoute component: `src/components/ProtectedRoute.tsx`
+  - Validación de rol automática (allowedRoles)
+  - Fallback LoadingScreen durante suspense
+  - Rutas configuradas:
+    - `/login` - Acceso público
+    - `/dashboard` - Dashboard principal
+    - `/pacientes` - Listado y `/pacientes/:id/historia-clinica`
+    - `/urgencias` - Solo MEDICO, ENFERMERO, DIRECTOR, ADMIN
+    - `/hospitalizacion` y `/hospitalizacion/camas` - Restrictivas
+    - `/facturacion` - Solo contadores y admin
+    - `/settings` - Admin only
+    - `/unauthorized` y `*` (NotFound) - Páginas de error
+
+- [x] **Tarea: AppShell + Sidebar Adaptivo** ✅ (02-06-2026)
+  - Componentes creados:
+    - `src/components/AppShell.tsx` - Layout principal con Outlet
+    - `src/components/Sidebar.tsx` - Sidebar adaptativo (desktop/mobile) con 11 items de menú
+    - `src/components/Header.tsx` - Header con notificaciones y user menu
+    - `src/components/NotificationContainer.tsx` - Sistema de notificaciones toast
+  - Características:
+    - Sidebar colapsable en mobile (Menu toggle)
+    - Filtrado de menú por rol de usuario
+    - Logo y branding HOSIX
+    - Indicadores de rol en user card
+    - Responsive design completo
+
+- [x] **App.tsx Actualizado** ✅ (02-06-2026)
+  - Integración completa de QueryClientProvider + RouterProvider
+  - Inicialización automática de auth en App component
+  - TooltipProvider y Toaster incluidos
+
+- [x] **Página de Login Básica** ✅ (02-06-2026)
+  - `src/pages/auth/Login.tsx` con formulario email/password
+  - Interfaz profesional con branding HOSIX
+  - TODO: Integración real con Supabase Auth
+
+### ✅ CORRECCIÓN ARQUITECTÓNICA - INTEGRACIÓN CON ESTRUCTURA EXISTENTE (02-06-2026 FINAL)
+- ❌ **Error identificado:** Se crearon 11 nuevas páginas en `/src/pages/` cuando ya existía estructura completa en `/src/pages/Hosix/` con componentes en `/src/components/hosix/`
+- ✅ **Corrección ejecutada:**
+  1. Eliminadas páginas duplicadas: Dashboard.tsx, Pacientes.tsx, HistoriaClinica.tsx, Urgencias.tsx, Hospitalizacion.tsx, Camas.tsx, Facturacion.tsx, Settings.tsx, NotFound.tsx, Unauthorized.tsx, auth/Login.tsx
+  2. Eliminados componentes duplicados: AppShell.tsx, Sidebar.tsx, Header.tsx, NotificationContainer.tsx, ProtectedRoute.tsx, router/
+  3. Actualizado `App.tsx` para usar el router existente de Hosix con BrowserRouter y rutas tradicionales
+  4. **Integrados Zustand stores en componentes existentes:**
+     - `HosixLayout.tsx` - Agregado useUIStore y useNotificationStore para detección mobile y sistema de notificaciones toast
+     - `HosixSidebar.tsx` - Mejorado con filtrado por rol usando useAuthStore y muestra nombre + rol del usuario en header
+  5. **Mejoras sin duplicación:**
+     - Sidebar ahora filtra menú según rol del usuario (roles por item configurables)
+     - Sistema de notificaciones integrado en HosixLayout (toast en esquina superior derecha)
+     - Detección automática de mobile en HosixLayout con useUIStore
+     - Información del usuario (nombre, rol) mostrada en sidebar cuando está abierto
+  
+  **Resultado:** Arquitectura moderna (Zustand, React Query, Realtime) integrada orgánicamente en estructura existente sin duplicación. 11 archivos innecesarios eliminados. ✅
+
+### 🟡 SEMANA 3 - MÓDULOS CLÍNICOS EN PROGRESO
 - [x] **Tarea 7:** Control Epidemiológico Avanzado ⚠️ Parcial
   - Backend: ✅ Migración `supabase/migrations/20260530_010_epidemiologia_avanzada.sql`
   - Frontend: ✅ Dashboard base `src/components/hosix/epidemiologia/DashboardEpidemiologico.tsx`

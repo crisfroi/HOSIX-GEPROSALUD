@@ -27,6 +27,14 @@ import Almacenes from '@/pages/Hosix/Almacenes'
 import Configuracion from '@/pages/Hosix/Configuracion'
 import SalaEspera from '@/pages/Hosix/SalaEspera'
 import PantallasManager from '@/pages/Hosix/Pantallas'
+import AdmisionCentral from '@/pages/Hosix/AdmisionCentral'
+import CRED from '@/pages/Hosix/CRED'
+import Cajas from '@/pages/Hosix/Cajas'
+import Compras from '@/pages/Hosix/Compras'
+import Interconsultas from '@/pages/Hosix/Interconsultas'
+import Recobros from '@/pages/Hosix/Recobros'
+import Suministros from '@/pages/Hosix/Suministros'
+import BI from '@/pages/Hosix/BI'
 
 function App() {
   return (
@@ -56,6 +64,14 @@ function App() {
               <Route path="configuracion" element={<Configuracion />} />
               <Route path="sala-espera" element={<SalaEspera />} />
               <Route path="pantallas" element={<PantallasManager />} />
+              <Route path="admision-central" element={<AdmisionCentral />} />
+              <Route path="cred" element={<CRED />} />
+              <Route path="cajas" element={<Cajas />} />
+              <Route path="compras" element={<Compras />} />
+              <Route path="interconsultas" element={<Interconsultas />} />
+              <Route path="recobros" element={<Recobros />} />
+              <Route path="suministros" element={<Suministros />} />
+              <Route path="bi" element={<BI />} />
             </Route>
           </Routes>
         </BrowserRouter>

@@ -4,6 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import UsuariosList from '@/components/hosix/usuarios/UsuariosList';
+import DepartamentosManager from '@/components/hosix/DepartamentosManager';
+import EquiposMedicosManager from '@/components/hosix/EquiposMedicosManager';
+import { CodificacionManager } from '@/components/hosix/CodificacionManager';
 
 const ConfiguracionPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('general');
@@ -97,30 +100,88 @@ const ConfiguracionPage: React.FC = () => {
 
         {/* Maestros */}
         <TabsContent value="maestros" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Maestros del Sistema</CardTitle>
-              <CardDescription>Configuración de datos maestros</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button variant="outline" className="w-full justify-start">
-                <Database className="w-4 h-4 mr-2" />
-                Departamentos
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <Database className="w-4 h-4 mr-2" />
-                Servicios
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <Database className="w-4 h-4 mr-2" />
-                Medicamentos
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <Database className="w-4 h-4 mr-2" />
-                Aseguradoras
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-1 gap-4">
+            {/* Sub-tabs para Maestros */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Gestión de Datos Maestros</CardTitle>
+                <CardDescription>Configure departamentos, equipos, codificación y otras entidades base</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="departamentos" className="w-full">
+                  <TabsList className="grid w-full grid-cols-5">
+                    <TabsTrigger value="departamentos">Departamentos</TabsTrigger>
+                    <TabsTrigger value="equipos">Equipos Médicos</TabsTrigger>
+                    <TabsTrigger value="codificacion">Codificación</TabsTrigger>
+                    <TabsTrigger value="otros">Otros</TabsTrigger>
+                    <TabsTrigger value="referencia">Referencia</TabsTrigger>
+                  </TabsList>
+
+                  {/* Departamentos */}
+                  <TabsContent value="departamentos" className="mt-4">
+                    <DepartamentosManager />
+                  </TabsContent>
+
+                  {/* Equipos Médicos */}
+                  <TabsContent value="equipos" className="mt-4">
+                    <EquiposMedicosManager />
+                  </TabsContent>
+
+                  {/* Codificación CIE-11 & Procedimientos */}
+                  <TabsContent value="codificacion" className="mt-4">
+                    <CodificacionManager />
+                  </TabsContent>
+
+                  {/* Otros Maestros */}
+                  <TabsContent value="otros" className="mt-4 space-y-3">
+                    <Button variant="outline" className="w-full justify-start">
+                      <Database className="w-4 h-4 mr-2" />
+                      Servicios y Productos
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start">
+                      <Database className="w-4 h-4 mr-2" />
+                      Medicamentos
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start">
+                      <Database className="w-4 h-4 mr-2" />
+                      Aseguradoras
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start">
+                      <Database className="w-4 h-4 mr-2" />
+                      Proveedores
+                    </Button>
+                  </TabsContent>
+
+                  {/* Referencia Rápida */}
+                  <TabsContent value="referencia" className="mt-4">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-sm">Referencia Rápida</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3 text-sm">
+                        <div>
+                          <p className="font-medium">Departamentos</p>
+                          <p className="text-gray-600">Entidades principales del hospital (Cardiología, Pediatría, etc.)</p>
+                        </div>
+                        <div>
+                          <p className="font-medium">Equipos Médicos</p>
+                          <p className="text-gray-600">Grupos de médicos que trabajan juntos por departamento</p>
+                        </div>
+                        <div>
+                          <p className="font-medium">Codificación</p>
+                          <p className="text-gray-600">Clasificación CIE-10/CIE-11, procedimientos y mapeos de diagnósticos</p>
+                        </div>
+                        <div>
+                          <p className="font-medium">Servicios</p>
+                          <p className="text-gray-600">Productos/servicios facturables (consultas, procedimientos, etc.)</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* Seguridad */}

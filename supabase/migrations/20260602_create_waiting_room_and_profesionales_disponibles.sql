@@ -48,13 +48,15 @@ create table if not exists hosix_pantallas_turno (
   actualizado_en timestamptz default now()
 );
 
-create function update_hosix_pantallas_updated_at()
+create or replace function update_hosix_pantallas_updated_at()
 returns trigger as $$
 begin
   new.actualizado_en = now();
   return new;
 end;
 $$ language plpgsql;
+
+drop trigger if exists trg_update_pantallas_updated_at on hosix_pantallas_turno;
 
 create trigger trg_update_pantallas_updated_at
 before update on hosix_pantallas_turno

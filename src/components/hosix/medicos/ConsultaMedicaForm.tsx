@@ -36,6 +36,8 @@ import {
   Loader2,
 } from 'lucide-react'
 import useHosixMedicos from '@/hooks/useHosixMedicos'
+import { DiagnosticoCIE11Selector } from '@/components/hosix/clinico/DiagnosticoCIE11Selector'
+import { useHosixCIE11, type DiagnosticoCIE11Seleccionado } from '@/hooks/useHosixCIE11'
 import { toast } from 'sonner'
 
 interface ConsultaMedicaFormProps {
@@ -76,7 +78,9 @@ export const ConsultaMedicaForm: React.FC<ConsultaMedicaFormProps> = ({
   const [diagnosticosSeleccionados, setDiagnosticosSeleccionados] = useState<
     Array<{ id: string; tipo: string; severidad?: string; observaciones?: string }>
   >([])
+  const [diagnosticosCIE11, setDiagnosticosCIE11] = useState<DiagnosticoCIE11Seleccionado[]>([])
   const [dialogoDiagnostico, setDialogoDiagnostico] = useState(false)
+  const { guardarDiagnosticosCIE11 } = useHosixCIE11()
 
   // Queries
   const { data: diagnosticosCatalogo = [], isLoading: loadingDiagnosticos } =
@@ -115,7 +119,7 @@ export const ConsultaMedicaForm: React.FC<ConsultaMedicaFormProps> = ({
 
   // Enviar consulta
   const handleEnviarConsulta = async () => {
-    if (diagnosticosSeleccionados.length === 0) {
+    if (diagnosticosSeleccionados.length === 0 && diagnosticosCIE11.length === 0) {
       toast.error('Debe agregar al menos un diagnóstico')
       return
     }
@@ -128,9 +132,10 @@ export const ConsultaMedicaForm: React.FC<ConsultaMedicaFormProps> = ({
         medico_id: '', // Se obtiene del auth en el hook
         ...formData,
         diagnosticos_confirmados: diagnosticosSeleccionados,
+        diagnosticos_cie11: diagnosticosCIE11,
       })
 
-      // Registrar diagnósticos en el paciente
+      // Registrar diagnósticos CIE-10 en el paciente
       for (const diag of diagnosticosSeleccionados) {
         await registrarDiagnosticoMutation.mutateAsync({
           pacienteId,
@@ -141,12 +146,21 @@ export const ConsultaMedicaForm: React.FC<ConsultaMedicaFormProps> = ({
         })
       }
 
+      // Guardar diagnósticos CIE-11 si existen
+      if (diagnosticosCIE11.length > 0) {
+        await guardarDiagnosticosCIE11({
+          paciente_id: pacienteId,
+          orden_medica_id: ordenId,
+          diagnosticos: diagnosticosCIE11,
+        })
+      }
+
       // Registrar entrada en diario clínico
       await registrarDiarioMutation.mutateAsync({
         paciente_id: pacienteId,
         medico_id: '',
         tipo_entrada: 'nota_clínica',
-        contenido: `Consulta médica realizada. Diagnósticos: ${diagnosticosSeleccionados.length}`,
+        contenido: `Consulta médica realizada. Diagnósticos CIE-10: ${diagnosticosSeleccionados.length}, CIE-11: ${diagnosticosCIE11.length}`,
         firmada: false,
       })
 
@@ -167,6 +181,7 @@ export const ConsultaMedicaForm: React.FC<ConsultaMedicaFormProps> = ({
         observaciones_seguimiento: '',
       })
       setDiagnosticosSeleccionados([])
+      setDiagnosticosCIE11([])
     } catch (error) {
       console.error('Error:', error)
     }
@@ -241,14 +256,32 @@ export const ConsultaMedicaForm: React.FC<ConsultaMedicaFormProps> = ({
         </CardContent>
       </Card>
 
-      {/* Diagnósticos */}
+      {/* Diagnósticos CIE-11 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Diagnósticos CIE-11 (Herramienta de Codificación Integrada)</CardTitle>
+          <CardDescription>
+            Utilice la herramienta de codificación integrada para seleccionar diagnósticos en CIE-11
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DiagnosticoCIE11Selector
+            onDiagnosticosChange={setDiagnosticosCIE11}
+            diagnosticosIniciales={diagnosticosCIE11}
+            modo="multiple"
+            label="Diagnósticos CIE-11"
+          />
+        </CardContent>
+      </Card>
+
+      {/* Diagnósticos CIE-10 */}
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle>Diagnósticos</CardTitle>
+              <CardTitle>Diagnósticos CIE-10 (Clásico)</CardTitle>
               <CardDescription>
-                Seleccione diagnósticos del catálogo CIE-10/SNOMED CT
+                Seleccione diagnósticos adicionales del catálogo CIE-10/SNOMED CT (opcional)
               </CardDescription>
             </div>
             <Dialog open={dialogoDiagnostico} onOpenChange={setDialogoDiagnostico}>

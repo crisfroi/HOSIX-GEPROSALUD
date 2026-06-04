@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:renaprosa": "vite --mode renaprosa",
     "build": "vite build",
+    "build:renaprosa": "vite build --mode renaprosa",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",

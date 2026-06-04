@@ -9,10 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
 import { CheckCircle, AlertCircle } from 'lucide-react';
+import { DiagnosticoCIE11Selector } from '@/components/hosix/clinico/DiagnosticoCIE11Selector';
+import { useHosixCIE11, type DiagnosticoCIE11Seleccionado } from '@/hooks/useHosixCIE11';
 
 const AltaForm: React.FC = () => {
   const { hospitalizacionesActivas, darAlta, isDandoAlta } = useHosixHospitalizacion();
   const { pacientes } = useHosixPacientes();
+  const { guardarDiagnosticosCIE11 } = useHosixCIE11();
 
   const [selectedHospitalizacion, setSelectedHospitalizacion] = useState<string>('');
   const [formData, setFormData] = useState({
@@ -21,6 +24,7 @@ const AltaForm: React.FC = () => {
     informeAlta: '',
   });
 
+  const [diagnosticosCIE11, setDiagnosticosCIE11] = useState<DiagnosticoCIE11Seleccionado[]>([]);
   const [submitted, setSubmitted] = useState(false);
 
   const hospitalizacionSeleccionada = hospitalizacionesActivas.data?.find(h => h.id === selectedHospitalizacion);
@@ -35,12 +39,22 @@ const AltaForm: React.FC = () => {
     }
 
     try {
+      // Guardar diagnósticos CIE-11 si existen
+      if (diagnosticosCIE11.length > 0) {
+        await guardarDiagnosticosCIE11({
+          hospitalizacion_id: selectedHospitalizacion,
+          paciente_id: hospitalizacionSeleccionada?.paciente_id,
+          diagnosticos: diagnosticosCIE11,
+        });
+      }
+
       await darAlta({
         hospitalizacionId: selectedHospitalizacion,
         tipoAlta: formData.tipoAlta,
         diagnosticoAlta: formData.diagnosticoAlta,
         informeAlta: formData.informeAlta,
         camaId: hospitalizacionSeleccionada!.cama_id,
+        diagnosticos_cie11: diagnosticosCIE11,
       });
 
       setSubmitted(true);
@@ -50,6 +64,7 @@ const AltaForm: React.FC = () => {
         diagnosticoAlta: '',
         informeAlta: '',
       });
+      setDiagnosticosCIE11([]);
 
       setTimeout(() => setSubmitted(false), 3000);
     } catch (error) {
@@ -88,7 +103,10 @@ const AltaForm: React.FC = () => {
             {/* Seleccionar Hospitalización */}
             <div className="space-y-2">
               <Label htmlFor="hospitalizacion">Paciente Hospitalizado *</Label>
-              <Select value={selectedHospitalizacion} onValueChange={setSelectedHospitalizacion}>
+              <Select value={selectedHospitalizacion} onValueChange={(value) => {
+                setSelectedHospitalizacion(value);
+                setDiagnosticosCIE11([]); // Reset diagnósticos al cambiar paciente
+              }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecciona un paciente hospitalizado" />
                 </SelectTrigger>
@@ -105,6 +123,23 @@ const AltaForm: React.FC = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Diagnósticos CIE-11 de Alta */}
+            {hospitalizacionSeleccionada && (
+              <Card className="border-green-200 bg-green-50">
+                <CardHeader>
+                  <CardTitle className="text-base">Diagnósticos de Alta CIE-11</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <DiagnosticoCIE11Selector
+                    onDiagnosticosChange={setDiagnosticosCIE11}
+                    diagnosticosIniciales={diagnosticosCIE11}
+                    modo="multiple"
+                    label="Diagnósticos CIE-11 de Alta"
+                  />
+                </CardContent>
+              </Card>
+            )}
 
             {/* Información del Paciente */}
             {hospitalizacionSeleccionada && pacienteInfo && (

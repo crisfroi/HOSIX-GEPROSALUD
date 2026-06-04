@@ -1,0 +1,340 @@
+Embedded Coding Tool (version 1.8)
+The Embedded Coding Tool allows the integration of a complete ICD-11 Coding Tool into your web application.
+The Embedded Coding Tool is a component of the Embedded Classification Tools (ECT) library, please refer to its documentation page for an overview about installation.
+
+
+
+Getting started
+To get started, you need to insert these 2 HTML elements into your markup (the attribute data-ctw-ino is the id of the Embedded Coding Tool and has to be the same for both HTML elements):
+
+<!-- input element used for typing the search  -->
+<input type="text" class="ctw-input" autocomplete="off" data-ctw-ino="1"> 
+
+<!-- div element used for showing the search results -->
+<div class="ctw-window" data-ctw-ino="1"></div>
+Then, insert your Embedded Coding Tool by calling the configure function and providing the ICD-API URL you want to use (the apiServerUrl is the only one required setting).
+
+const mySettings = {
+    apiServerUrl: "https://icd11restapi-developer-test.azurewebsites.net"   
+};
+
+// configure the ECT Handler
+ECT.Handler.configure(mySettings);
+The Embedded Coding Tool is now plugged in.
+
+Try out the code playgrounds and play around with the live examples:
+
+Embedded Coding Tool in pure JavaScript
+Embedded Coding Tool in the Angular framework
+Embedded Coding Tool in the React framework
+Embedded Coding Tool in the Vue.js framework
+Please note that the above example is using an API deployment located at https://icd11restapi-developer-test.azurewebsites.net. This version does not require authentication but you should use it only for software development and testing. ICD content at this location might not be up to date or complete. For production, use the API located at id.who.int with proper OAUTH authentication.
+You'll find further details below in this document
+
+
+
+Usage
+The Embedded Coding Tool supplies a Handler ECT.Handler that provides customizable Settings, customizable Callbacks (such as using the user's selection) and Functions for maximizing the integration in your webapp
+
+ECT.Handler.configure(mySettings, myCallbacks);
+This configure function gets 2 arguments:
+
+mySettings is an object which defines your custom settings
+myCallbacks is an object which contains your callbacks implementation. This argument is optional, you can call the configure function with only the first argument: ECT.Handler.configure(mySettings);
+
+
+Settings
+The mySettings object has these properties:
+
+Property	Required	Type	Default	Description
+apiServerUrl	required	string		Used to set the ICD-API server URL
+apiSecured	optional	boolean	false	Set to “true” for using the API with OAUTH 2.0 Authentication
+minorVersion	optional	string		Used to set the classification minor version. Leave empty for always using the last minor version released
+source	optional	string	"mms"	Specifies the classification source to use. Accepted values: "mms" or "icf"
+language	optional	string	"en"	Used to set the language. Please refer to the multilingual support section for more details about this property
+sourceApp	optional	string		Set your application name (used for analytics)
+autoBind	optional	boolean	true	Please refer to the advanced settings section for more details about this property
+popupMode	optional	boolean	false	Set to “true” for displaying the search results as a suggester popup (instead of a full-page results). Please refer to the Popup mode section for more details about this property
+simplifiedMode	optional	boolean	false	You should not use this mode for medical coding (use only for simple search). Set to “true” for showing the search results as a simplified output; the search result is just a list of codes and titles. Please pay attention because related words, filters, manual postcoordination and all the entities' information and suggestion are not available in the simplified mode.
+disableHierarchy      	optional	boolean	false  	You should not use this mode for medical coding (use only for simple search). Set to “true” for disabling the ICD-11 hierarchy (in browser mode).  
+wordsAvailable	optional	boolean	true	Set to “true” for showing the related words on the left of the search results
+chaptersAvailable	optional	boolean	true	Set to “true” for making available the chapters distribution and filters
+chaptersFilter	optional	string		Semicolon separated list of chapter codes eg:"01;02;21". When provided, the search will be performed only on these chapters
+subtreesFilter	optional	string		Comma separated list of Foundation URIs. If provided, the search will be performed on the entities provided and their descendants
+browserHierarchyRootURIs	optional	string[]		If you want to show only one or more subsets of the ICD-11 hierarchy (in browser mode), use this property for setting the root URIs of these subsets. Please note that the property type is an array of string (URI)
+flexisearchAvailable	optional	boolean	true	Set to “true” for making available the flexible search (used when the regular search do not return any results)
+searchByCodeOrURI	optional	boolean	false	Set to “true” for making available the search by ICD-11 Code or ICD-11 URI (by default the search is only textual)
+otherPostcoordination	optional	boolean	true	Enables the “other postcoordination” area to build postcoordination expression using a wider set of classification entities.
+hierarchyTitle	optional	string		For setting a custom title above the entities hierarchy (into the browser)
+hierarchyResizable	optional	boolean	true	For changing the width of the entities hierarchy using the mouse
+height	optional	string		This is for setting the maximum height of the Embedded Coding Tool in your page (accepts CSS px unit or CSS vh unit). Leave empty to do not set a default height
+enableKeyboard	optional	boolean	true	Set to “true” for enabling the keyboard shortcuts. Use arrow keys for scrolling the Destination Entities and for opening/closing the Entity details and the Enter key for selecting the Entity
+Deprecated Settings
+The following settings are deprecated and should be replaced with their updated equivalents.
+
+Setting	Status	Description
+icdMinorVersion	deprecated	Previously used to specify the ICD minor version. This setting is now replaced by minorVersion, but it continues to work for backward compatibility.
+icdLinearization	deprecated	Previously used to select the ICD linearization. This setting has been replaced by source, which defines the classification to use. It remains supported for backward compatibility.
+
+
+Example using a locally deployed version of the API (without OAUTH Authentication):
+For using the Embedded Coding Tool with a locally deployed version of the API without Authentication, you have to set these 2 properties:
+
+apiServerUrl this points to the URL where the ICD-API is deployed (for example, if the API is running on your host http://mycontainerhost.com just set this URL)
+apiSecured to false
+For more details about how to run an ICD API locally please refer to the ICD-API Local Deployment
+
+const mySettings = {
+    apiServerUrl: "http://mycontainerhost.com",   
+    apiSecured: false
+};
+Example using the cloud hosted version of the API (with OAUTH Authentication)
+For using the Embedded Coding Tool with the cloud hosted version of the API (Authentication is mandatory) you have to set these 2 properties:
+
+apiServerUrl to https://id.who.int
+apiSecured to true
+const mySettings = {
+    apiServerUrl: "https://id.who.int",   
+    apiSecured: true
+};
+In order to be able to use the cloud hosted version of the API, you need to provide an OAUTH 2.0 token.
+Of course, it is not a good idea putting your Client Id and Client Secret directly in a javaScript source code, so the best practice is using the getNewTokenFunction() callback function for calling your custom server-side script that returns back the token.
+The next paragraph Callbacks explains how to implement this function.
+
+For more details about ICD API Authentication please refer to ICD API Authentication Docs
+
+
+
+Callbacks
+The myCallbacks object provides 4 callbacks:
+
+const myCallbacks = {
+    selectedEntityFunction: (selectedEntity) => {
+        //...
+    },
+    getNewTokenFunction: async () => {
+        //...
+    },
+    searchStartedFunction: () => {
+        //...
+    },
+    searchEndedFunction: () => {
+        //...
+    }
+};
+It is not necessary to implement all the myCallbacks functions, you can only use the ones you need.
+
+1. Callback function for using the user's selection
+The callback function selectedEntityFunction(selectedEntity) is fired when an ICD-11 entity is selected by mouse click or by press enter. In other words, this callback function is called when the user makes a code selection from the Coding Tool interface.
+
+The function selectedEntityFunction(selectedEntity) has as parameter the selectedEntity object. The object contains the information about the selected entity. From the ECT version 1.5 it also provides the foundation URI of the selected entity. The structure is the follow:
+
+selectedEntity {
+    iNo: 'the “identifier” of the Embedded Coding Tool (set in data-ctw-ino)',
+    linearizationUri: 'the linearization URI of the selected entity',
+    foundationUri: 'the foundation URI of the selected entity',
+    code: 'the entity Code',
+    title: 'the Title of the stemcode',
+    selectedText: 'the full text of the entity based on the selection made by the user (title, title and postcoordination, matching term...)',
+    searchQuery: 'the SearchQuery',
+
+    uri: 'the entity URI',                  // deprecated
+    bestMatchText: 'the BestMatchText',     // deprecated
+}
+N.B: the keys uri and bestMatchText are deprecated from the ECT version 1.5 and will be removed from the future version. We highly recommend using the new keys linearizationUri foundationUri and selectedText
+
+IMPORTANT! Please note that the foundation URI contains more granular information than the ICD-11 code or linearization URI. Therefore, it is recommended to store the information coming from that field in addition to the ICD-11 code in your applications.
+
+Full example: how to use the code selected by a user
+Below an example that uses the callback function selectedEntityFunction to paste the selected code into an extra input element and to automatically clean the search results.
+
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+
+    <link rel="stylesheet" href="https://icdcdn.who.int/embeddedct/icd11ect-1.8.css">
+    <title>Embedded Coding Tool v1.8</title>
+</head>
+
+<body>
+
+    Type for starting search: 
+    <!-- input element used for typing the search  -->
+    <input type="text" class="ctw-input" autocomplete="off" data-ctw-ino="1"> 
+
+    <!-- div element used for showing the search results -->
+    <div class="ctw-window" data-ctw-ino="1"></div>
+
+    <!-- example of an extra input element for testing the Embedded Coding Tool select entity function -->
+    The selected code: <input type="text" id="paste-selectedEntity" value=""> 
+
+    <script src="https://icdcdn.who.int/embeddedct/icd11ect-1.8.js"></script>
+    <script>
+        // Embedded Coding Tool settings object
+        // please note that only the property "apiServerUrl" is required
+        // the other properties are optional
+        const mySettings = {
+            // The API located at the URL below should be used only for software
+            // development and testing. ICD content at this location might not
+            //  be up to date or complete. For production, use the API located at
+            // id.who.int with proper OAUTH authentication
+            apiServerUrl: "https://icd11restapi-developer-test.azurewebsites.net"   
+        };
+
+        // example of an Embedded Coding Tool using the callback selectedEntityFunction 
+        // for copying the code selected in an <input> element and clear the search results
+        const myCallbacks = {
+            selectedEntityFunction: (selectedEntity) => { 
+                // paste the code into the <input>
+                document.getElementById('paste-selectedEntity').value = selectedEntity.code;        
+                // clear the searchbox and delete the search results
+                ECT.Handler.clear("1")    
+            }
+        };
+
+        // configure the ECT Handler with mySettings and myCallbacks
+        ECT.Handler.configure(mySettings, myCallbacks);
+    </script>    
+
+</body>
+Try out the Playground and play around with the full example.
+
+2. Callback function for getting the token
+The callback function getNewTokenFunction() is a required callback to provide the OAUTH 2.0 token (used only with the cloud hosted version of the API as explained here). The getNewTokenFunction() has to return the token string.
+
+getNewTokenFunction: async () => {
+    // if the embedded coding tool is working with the cloud hosted ICD-API, you need to set apiSecured=true
+    // In this case the Embedded Coding Tool calls this function when it needs a new token.
+    // So, your backend web application should provide updated tokens 
+
+    const url = 'http://myhost.com/mybackendscript' // we assume this backend script returns a JSON {'token': '...'} 
+    try {
+        const response = await fetch(url);
+        const result = await response.json();
+        const token = result.token;
+        return token; // the function return is required 
+    } catch (e) {
+        console.log("Error during the request");
+    }
+}
+3. Callback function fired before the search is performed
+The callback function searchStartedFunction() is fired before the search was performed. This could be used to show a wait cursor or something like that.
+
+searchStartedFunction: () => {
+    //this callback is called when searching is started.
+    console.log("Search started!");
+}
+4. Callback function fired after the search is performed
+The callback function searchEndedFunction() is fired after the search was performed. Similarly this could be used to hide the wait cursor.
+
+searchEndedFunction: () => {
+    //this callback is called when search ends.
+    console.log("Search ended!");
+}
+
+
+
+Functions
+We provide several functions to control/automate the behavior of the embedded coding tool.
+
+1. Search
+Normally, the embedded coding tool automatically starts searching when the user starts typing on the configured input element.
+However, you could use this function to perform searching programmatically with the Coding Tool, using external javascript
+
+ECT.Handler.search(iNo, q);
+Arguments:
+
+iNo (string): the “identifier” of the Embedded Coding Tool (set in data-ctw-ino)
+q (string): the query string
+Example:
+
+ECT.Handler.search("1", "tuberculosis");
+2. Clear the results
+This function can be used to clear the searchbox and delete the search results
+
+ECT.Handler.clear(iNo);
+Argument:
+
+iNo (string): the “identifier” of the Embedded Coding Tool (set in data-ctw-ino)
+Example:
+
+ECT.Handler.clear("1");
+3. Change the source
+This function changes the classification source used by the Embedded Coding Tool instance identified by iNo.
+
+ECT.Handler.changeSource(iNo, source);
+Argument:
+
+iNo (string): the “identifier” of the Embedded Coding Tool (set in data-ctw-ino)
+source (string): specifies the classification to use. Accepted values: "mms" or "icf"
+Examples:
+
+// switch the Embedded Coding Tool to use ICD-11 MMS
+ECT.Handler.changeSource("1", "mms");
+
+// switch the Embedded Coding Tool to use ICF
+ECT.Handler.changeSource("1", "icf");
+4. Change the minor version
+This function changes the classification minor version used by the Embedded Coding Tool instance identified by iNo.
+
+ECT.Handler.changeMinorVersion(iNo, minorVersion);
+Argument:
+
+iNo (string): the “identifier” of the Embedded Coding Tool (set in data-ctw-ino)
+minorVersion (string): the minorVersion parameter defines the classification release to use. For example "2026-01".
+Example:
+
+// switch the Embedded Coding Tool to use a previous minor version
+ECT.Handler.changeMinorVersion("1", "2025-01");
+5. Change the language
+This function changes the language of the Embedded Coding Tool instance identified by iNo.
+
+ECT.Handler.changeLanguage(iNo, language);
+Argument:
+
+iNo (string): the “identifier” of the Embedded Coding Tool (set in data-ctw-ino)
+language (string): must be a valid ISO 639‑1 language code. Examples: "en" (English), "es" (Spanish), "fr" (French). Only languages supported by the ICD-11 classifications are available
+Examples:
+
+// change the Embedded Coding Tool language to Spanish
+ECT.Handler.changeLanguage("1", "es");
+
+// change the Embedded Coding Tool language to Spanish
+ECT.Handler.changeLanguage("1", "fr");
+Try out the Playground and play around with the changeLanguage functions.
+
+
+
+
+Multilingual support
+The Embedded Coding Tool supports multiple languages. You can configure the language at initialization time or change it dynamically at runtime.
+
+To set the language at initialization time, you have to use the property language.
+
+Example:
+
+const mySettings = {
+    apiServerUrl: "https://icd11restapi-developer-test.azurewebsites.net",   
+    language: "es" // set the language to Spanish
+};
+If the language property is not set, the default value is "en" (English). The language must be a valid ISO 639‑1 language code. Examples: "en" (English), "es" (Spanish), "fr" (French). Please refer to the list of the ICD-11 supported classifications for the available languages.
+
+Try out the Playground and play around with the example in the Spanish language.
+
+To change the language dynamically at runtime, refer to the changeLanguage function documentation
+
+
+
+
+Popup mode
+By default the Embedded Coding Tool shows the search results using the whole space available in the page. In order to displaying the search results as a suggester popup, you have to set the boolean property popupMode to true.
+
+Example:
+
+const mySettings = {
+    apiServerUrl: "https://icd11restapi-developer-test.azurewebsites.net",   
+    popupMode: true
+};
+Try out the Playground and play around with the popup mode.
+

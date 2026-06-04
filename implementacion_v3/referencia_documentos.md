@@ -88,6 +88,27 @@ implementacion_v3/
 3. **Ejecutar:** Fase por fase
 4. **Actualizar:** Log conforme se completa cada item
 
+## 🐳 ICD-API en Docker (puerto 8090)
+
+- Archivo de referencia: `docker-compose.icd-api.yml`
+- Servicio expuesto en: `http://localhost:8090`
+- Endpoints útiles:
+  - Swagger: `http://localhost:8090/swagger/index.html`
+  - Coding Tool: `http://localhost:8090/ct`
+  - Browser: `http://localhost:8090/browse`
+
+Comando para iniciar:
+
+```bash
+docker compose -f docker-compose.icd-api.yml up -d
+```
+
+Comando para detener:
+
+```bash
+docker compose -f docker-compose.icd-api.yml down
+```
+
 ---
 
 **Creado:** 3 de Junio 2026  

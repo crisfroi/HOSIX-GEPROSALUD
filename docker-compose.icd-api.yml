@@ -1,0 +1,21 @@
+services:
+  icd-api:
+    image: whoicd/icd-api:latest
+    container_name: hosix-icd-api
+    restart: unless-stopped
+    ports:
+      - "8090:80"
+    environment:
+      acceptLicense: "true"
+      saveAnalytics: "false"
+      include: "2026-01_en-es"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://127.0.0.1/swagger/index.html >/dev/null 2>&1 || curl -fsS http://127.0.0.1/swagger/index.html >/dev/null 2>&1 || exit 1"
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s

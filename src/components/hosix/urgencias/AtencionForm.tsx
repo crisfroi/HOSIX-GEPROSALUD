@@ -7,6 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DiagnosticoCIE11Selector } from '@/components/hosix/clinico/DiagnosticoCIE11Selector';
+import { useHosixCIE11, type DiagnosticoCIE11Seleccionado } from '@/hooks/useHosixCIE11';
 import { toast } from 'sonner';
 
 interface AtencionFormProps {
@@ -16,9 +18,11 @@ interface AtencionFormProps {
 
 export default function AtencionForm({ episodio_id, onSuccess }: AtencionFormProps) {
   const { registrarAtencion, isRegistrandoAtencion, cerrarEpisodio, isCerrandoEpisodio } = useHosixUrgencias();
+  const { guardarDiagnosticosCIE11 } = useHosixCIE11();
   const [tab, setTab] = useState('atencion');
   const [diagnosticoInicial, setDiagnosticoInicial] = useState('');
   const [diagnosticoFinal, setDiagnosticoFinal] = useState('');
+  const [diagnosticosCIE11, setDiagnosticosCIE11] = useState<DiagnosticoCIE11Seleccionado[]>([]);
   const [observaciones, setObservaciones] = useState('');
   const [tipoSalida, setTipoSalida] = useState('');
   const [destinoSalida, setDestinoSalida] = useState('');
@@ -42,29 +46,42 @@ export default function AtencionForm({ episodio_id, onSuccess }: AtencionFormPro
     );
   };
 
-  const handleCerrarEpisodio = () => {
+  const handleCerrarEpisodio = async () => {
     if (!tipoSalida) {
       toast.warning('Seleccione tipo de salida');
       return;
     }
 
-    cerrarEpisodio(
-      {
-        episodio_id,
-        tipo_salida: tipoSalida,
-        destino_salida: destinoSalida || undefined,
-        diagnostico_final: diagnosticoFinal || undefined,
-      },
-      {
-        onSuccess: () => {
-          toast.success('Episodio cerrado correctamente');
-          onSuccess();
-        },
-        onError: (error: any) => {
-          toast.error(`Error: ${error.message}`);
-        },
+    try {
+      // Guardar diagnósticos CIE-11 si existen
+      if (diagnosticosCIE11.length > 0) {
+        await guardarDiagnosticosCIE11({
+          episodio_urgencia_id: episodio_id,
+          diagnosticos: diagnosticosCIE11,
+        });
       }
-    );
+
+      cerrarEpisodio(
+        {
+          episodio_id,
+          tipo_salida: tipoSalida,
+          destino_salida: destinoSalida || undefined,
+          diagnostico_final: diagnosticoFinal || undefined,
+          diagnosticos_cie11: diagnosticosCIE11,
+        },
+        {
+          onSuccess: () => {
+            toast.success('Episodio cerrado correctamente');
+            onSuccess();
+          },
+          onError: (error: any) => {
+            toast.error(`Error: ${error.message}`);
+          },
+        }
+      );
+    } catch (error: any) {
+      toast.error(`Error al guardar diagnósticos CIE-11: ${error.message}`);
+    }
   };
 
   return (
@@ -75,10 +92,25 @@ export default function AtencionForm({ episodio_id, onSuccess }: AtencionFormPro
       </TabsList>
 
       <TabsContent value="atencion" className="space-y-6">
-        {/* Diagnóstico */}
+        {/* Diagnósticos CIE-11 */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Diagnósticos</CardTitle>
+            <CardTitle className="text-base">Diagnósticos CIE-11 (Herramienta de Codificación Integrada)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DiagnosticoCIE11Selector
+              onDiagnosticosChange={setDiagnosticosCIE11}
+              diagnosticosIniciales={diagnosticosCIE11}
+              modo="multiple"
+              label="Diagnósticos CIE-11 de Urgencias"
+            />
+          </CardContent>
+        </Card>
+
+        {/* Diagnósticos Texto Libre */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Diagnósticos (Texto Libre)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>

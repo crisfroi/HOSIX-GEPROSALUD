@@ -59,7 +59,9 @@ export interface Lote {
   numero_lote: string;
   cantidad_lote: number;
   fecha_vencimiento?: string;
-  dias_para_vencer?: number;
+  // Nota: dias_para_vencer se calcula al vuelo como (fecha_vencimiento - CURRENT_DATE)
+  // No se guarda en BD por no ser immutable. Si se necesita, usarlo en SELECT:
+  // SELECT *, (fecha_vencimiento - CURRENT_DATE) AS dias_para_vencer FROM hosix_stock_lotes
   activo: boolean;
   created_at: string;
 }

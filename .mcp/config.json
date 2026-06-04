@@ -4,9 +4,9 @@
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-supabase"],
       "env": {
-        "SUPABASE_URL": "https://mcp.supabase.com/mcp?project_ref=abxusmjvsuabvbbwwxqg",
-        "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFieHVzbWp2c3VhYnZiYnd3eHFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTYwMDYsImV4cCI6MjA5NTYzMjAwNn0.ysswcWo1viznFK9zOOrVkg7nzAqLVrrlHSXPgYNszVA",
-        "SUPABASE_SERVICE_ROLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFieHVzbWp2c3VhYnZiYnd3eHFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTYwMDYsImV4cCI6MjA5NTYzMjAwNn0.ysswcWo1viznFK9zOOrVkg7nzAqLVrrlHSXPgYNszVA"
+        "SUPABASE_URL": "https://abxusmjvsuabvbbwwxqg.supabase.co",
+        "SUPABASE_ANON_KEY": "sb_publishable_zPejyYzMYhoQ6Q4mTwPcFQ_pP_GxnC2",
+        "SUPABASE_SERVICE_ROLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFieHVzbWp2c3VhYnZiYnd3eHFnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDA1NjAwNiwiZXhwIjoyMDk1NjMyMDA2fQ.ykNkDa2bPiaipt2aWDdnwRIx8dFSl_0s1XMYcSHKyWs"
       }
     }
   }

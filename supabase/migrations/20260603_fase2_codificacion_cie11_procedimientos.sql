@@ -43,7 +43,9 @@ CREATE POLICY "codigos_cie_read_authenticated" ON public.hosix_codigos_cie
 CREATE POLICY "codigos_cie_write_admin" ON public.hosix_codigos_cie
     FOR ALL
     USING (auth.role() = 'authenticated' AND EXISTS (
-        SELECT 1 FROM public.hosix_users WHERE id = auth.uid() AND rol IN ('ADMINISTRADOR', 'DOCTOR')
+        SELECT 1 FROM public.hosix_usuarios u
+        JOIN public.hosix_perfiles p ON p.id = u.perfil_id
+        WHERE u.auth_user_id = auth.uid() AND p.codigo IN ('admin', 'medico')
     ));
 
 -- ===================================================
@@ -83,7 +85,9 @@ CREATE POLICY "procedimientos_read_authenticated" ON public.hosix_procedimientos
 CREATE POLICY "procedimientos_write_admin" ON public.hosix_procedimientos_medicos
     FOR ALL
     USING (auth.role() = 'authenticated' AND EXISTS (
-        SELECT 1 FROM public.hosix_users WHERE id = auth.uid() AND rol IN ('ADMINISTRADOR')
+        SELECT 1 FROM public.hosix_usuarios u
+        JOIN public.hosix_perfiles p ON p.id = u.perfil_id
+        WHERE u.auth_user_id = auth.uid() AND p.codigo IN ('admin')
     ));
 
 -- ===================================================
@@ -95,7 +99,7 @@ CREATE TABLE IF NOT EXISTS public.hosix_mapeos_cie (
     codigo_cie11 VARCHAR(20) NOT NULL,
     descripcion_mapeo TEXT,
     similitud_porcentaje INTEGER DEFAULT 100 CHECK (similitud_porcentaje >= 0 AND similitud_porcentaje <= 100),
-    validado_por UUID REFERENCES public.hosix_users(id) ON DELETE SET NULL,
+    validado_por UUID REFERENCES public.hosix_usuarios(id) ON DELETE SET NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     
     -- Índices para búsqueda
@@ -116,103 +120,10 @@ CREATE POLICY "mapeos_cie_read_authenticated" ON public.hosix_mapeos_cie
 CREATE POLICY "mapeos_cie_write_admin" ON public.hosix_mapeos_cie
     FOR ALL
     USING (auth.role() = 'authenticated' AND EXISTS (
-        SELECT 1 FROM public.hosix_users WHERE id = auth.uid() AND rol IN ('ADMINISTRADOR')
+        SELECT 1 FROM public.hosix_usuarios u
+        JOIN public.hosix_perfiles p ON p.id = u.perfil_id
+        WHERE u.auth_user_id = auth.uid() AND p.codigo IN ('admin')
     ));
-
--- ===================================================
--- 4. TABLA: hosix_diagnosticos_episodios_cie11 (Vinculación diagnósticos con CIE-11)
--- ===================================================
--- Tabla de unión entre episodios y diagnósticos CIE-11
-CREATE TABLE IF NOT EXISTS public.hosix_diagnosticos_episodios_cie11 (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    episodio_id UUID NOT NULL REFERENCES public.hosix_episodios(id) ON DELETE CASCADE,
-    codigo_cie11 VARCHAR(20) NOT NULL,
-    es_principal BOOLEAN DEFAULT false,
-    es_complicacion BOOLEAN DEFAULT false,
-    confirmado BOOLEAN DEFAULT false,
-    notas TEXT,
-    diagnosticado_por UUID REFERENCES public.hosix_users(id) ON DELETE SET NULL,
-    fecha_diagnostico TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    
-    -- Referencia a CIE-11
-    CONSTRAINT fk_codigo_cie11 FOREIGN KEY (codigo_cie11) REFERENCES public.hosix_codigos_cie(codigo) ON DELETE RESTRICT
-);
-
--- Índices
-CREATE INDEX idx_diag_episodio ON public.hosix_diagnosticos_episodios_cie11(episodio_id);
-CREATE INDEX idx_diag_codigo_cie ON public.hosix_diagnosticos_episodios_cie11(codigo_cie11);
-CREATE INDEX idx_diag_principal ON public.hosix_diagnosticos_episodios_cie11(es_principal);
-
--- RLS
-ALTER TABLE public.hosix_diagnosticos_episodios_cie11 ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "diagnosticos_cie_read_by_centro" ON public.hosix_diagnosticos_episodios_cie11
-    FOR SELECT
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.hosix_episodios e
-            WHERE e.id = episodio_id
-            AND e.centro_salud_id = (SELECT centro_salud_id FROM public.hosix_users WHERE id = auth.uid())
-        )
-    );
-
-CREATE POLICY "diagnosticos_cie_write_clinico" ON public.hosix_diagnosticos_episodios_cie11
-    FOR ALL
-    USING (
-        auth.uid() = diagnosticado_por OR
-        EXISTS (
-            SELECT 1 FROM public.hosix_users WHERE id = auth.uid() AND rol IN ('ADMINISTRADOR', 'DOCTOR', 'ENFERMERIA')
-        )
-    );
-
--- ===================================================
--- 5. TABLA: hosix_procedimientos_episodios (Procedimientos en episodios)
--- ===================================================
--- Tabla de unión entre episodios y procedimientos realizados
-CREATE TABLE IF NOT EXISTS public.hosix_procedimientos_episodios (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    episodio_id UUID NOT NULL REFERENCES public.hosix_episodios(id) ON DELETE CASCADE,
-    codigo_procedimiento VARCHAR(20) NOT NULL,
-    realizado_por UUID REFERENCES public.hosix_users(id) ON DELETE SET NULL,
-    fecha_procedimiento TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    tiempo_real_min INTEGER, -- Tiempo real que tomó el procedimiento
-    complicaciones TEXT,
-    notas TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    
-    -- Referencia a procedimientos
-    CONSTRAINT fk_codigo_proc FOREIGN KEY (codigo_procedimiento) REFERENCES public.hosix_procedimientos_medicos(codigo_procedimiento) ON DELETE RESTRICT
-);
-
--- Índices
-CREATE INDEX idx_proc_episodio ON public.hosix_procedimientos_episodios(episodio_id);
-CREATE INDEX idx_proc_codigo ON public.hosix_procedimientos_episodios(codigo_procedimiento);
-CREATE INDEX idx_proc_realizado_por ON public.hosix_procedimientos_episodios(realizado_por);
-
--- RLS
-ALTER TABLE public.hosix_procedimientos_episodios ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "procedimientos_ep_read_by_centro" ON public.hosix_procedimientos_episodios
-    FOR SELECT
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.hosix_episodios e
-            WHERE e.id = episodio_id
-            AND e.centro_salud_id = (SELECT centro_salud_id FROM public.hosix_users WHERE id = auth.uid())
-        )
-    );
-
-CREATE POLICY "procedimientos_ep_write_clinico" ON public.hosix_procedimientos_episodios
-    FOR ALL
-    USING (
-        auth.uid() = realizado_por OR
-        EXISTS (
-            SELECT 1 FROM public.hosix_users WHERE id = auth.uid() AND rol IN ('ADMINISTRADOR', 'DOCTOR', 'ENFERMERIA')
-        )
-    );
 
 -- ===================================================
 -- TRIGGERS para actualizar updated_at

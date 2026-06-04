@@ -9,11 +9,14 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle } from 'lucide-react';
+import { DiagnosticoCIE11Selector } from '@/components/hosix/clinico/DiagnosticoCIE11Selector';
+import { useHosixCIE11, type DiagnosticoCIE11Seleccionado } from '@/hooks/useHosixCIE11';
 
 const IngresoPacienteForm: React.FC = () => {
   const { camasDisponibles, createHospitalizacion, isCreatingHospitalizacion } = useHosixHospitalizacion();
   const { pacientes } = useHosixPacientes();
   const { data: profesionales = [] } = useProfesionales();
+  const { guardarDiagnosticosCIE11 } = useHosixCIE11();
 
   const [formData, setFormData] = useState({
     paciente_id: '',
@@ -25,6 +28,7 @@ const IngresoPacienteForm: React.FC = () => {
     duracion_prevista_dias: 5,
   });
 
+  const [diagnosticosCIE11, setDiagnosticosCIE11] = useState<DiagnosticoCIE11Seleccionado[]>([]);
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,7 +40,7 @@ const IngresoPacienteForm: React.FC = () => {
     }
 
     try {
-      await createHospitalizacion({
+      const result = await createHospitalizacion({
         paciente_id: formData.paciente_id,
         cama_id: formData.cama_id,
         servicio_id: formData.servicio_id,
@@ -48,6 +52,15 @@ const IngresoPacienteForm: React.FC = () => {
         estado: 'activo',
       });
 
+      // Guardar diagnósticos CIE-11 si existen
+      if (diagnosticosCIE11.length > 0 && result?.id) {
+        await guardarDiagnosticosCIE11({
+          hospitalizacion_id: result.id,
+          paciente_id: formData.paciente_id,
+          diagnosticos: diagnosticosCIE11,
+        });
+      }
+
       setSubmitted(true);
       setFormData({
         paciente_id: '',
@@ -58,6 +71,7 @@ const IngresoPacienteForm: React.FC = () => {
         diagnostico_ingreso: '',
         duracion_prevista_dias: 5,
       });
+      setDiagnosticosCIE11([]);
 
       setTimeout(() => setSubmitted(false), 3000);
     } catch (error) {
@@ -86,6 +100,21 @@ const IngresoPacienteForm: React.FC = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Diagnósticos CIE-11 */}
+            <Card className="border-blue-200 bg-blue-50">
+              <CardHeader>
+                <CardTitle className="text-base">Diagnósticos de Ingreso CIE-11</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <DiagnosticoCIE11Selector
+                  onDiagnosticosChange={setDiagnosticosCIE11}
+                  diagnosticosIniciales={diagnosticosCIE11}
+                  modo="multiple"
+                  label="Diagnósticos CIE-11 de Hospitalización"
+                />
+              </CardContent>
+            </Card>
+
             {/* Paciente */}
             <div className="space-y-2">
               <Label htmlFor="paciente">Paciente *</Label>

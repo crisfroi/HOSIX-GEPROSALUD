@@ -6,20 +6,26 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useHosixAuth } from '@/hooks/useHosixAuth';
+import { useProfesionalAuth } from '@/hooks/useProfesionalAuth';
 
 const HosixLogin: React.FC = () => {
   const navigate = useNavigate();
-  const { login, isLoading, error: authError, isAuthenticated } = useHosixAuth();
+  const { login, isLoading: adminLoading, error: authError, isAuthenticated } = useHosixAuth();
+  const { loginProfesional, isLoading: profLoading, profesionalSession } = useProfesionalAuth();
+  
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const isLoading = adminLoading || profLoading;
 
-  // Redirigir si ya está autenticado
   useEffect(() => {
     if (isAuthenticated) {
       navigate('/hosix');
     }
-  }, [isAuthenticated, navigate]);
+    if (profesionalSession) {
+      navigate('/hosix');
+    }
+  }, [isAuthenticated, profesionalSession, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,9 +36,22 @@ const HosixLogin: React.FC = () => {
       return;
     }
 
+    // Detectar si es profesional: formato MED-2025-001 o similar
+    const isProfesional = /^[A-Z]{2,}-\d{4}-\d{3}$/.test(username.trim());
+
     try {
-      await login(username, password);
-      navigate('/hosix');
+      if (isProfesional) {
+        // Login de profesional
+        const result = await loginProfesional(username.trim(), password);
+        if (result.success) {
+          // El hook maneja el cambio obligatorio de contraseña
+          navigate('/hosix');
+        }
+      } else {
+        // Login de admin
+        await login(username, password);
+        navigate('/hosix');
+      }
     } catch (err) {
       setError(authError || 'Error al iniciar sesión. Verifique sus credenciales.');
       console.error(err);
@@ -60,7 +79,7 @@ const HosixLogin: React.FC = () => {
           <CardHeader>
             <CardTitle>Iniciar Sesión</CardTitle>
             <CardDescription>
-              Ingrese sus credenciales para acceder al sistema
+              Administrador, Médico o Profesional Sanitario
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -74,14 +93,14 @@ const HosixLogin: React.FC = () => {
               {/* Username */}
               <div className="space-y-2">
                 <label htmlFor="username" className="text-sm font-medium">
-                  Usuario
+                  Usuario / ID Profesional
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <Input
                     id="username"
                     type="text"
-                    placeholder="Ingrese su usuario"
+                    placeholder="admin o MED-2025-001"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     className="pl-10"
@@ -138,13 +157,13 @@ const HosixLogin: React.FC = () => {
                 <h3 className="text-sm font-semibold text-amber-900 mb-2">🔧 Credenciales de Desarrollo</h3>
                 <div className="space-y-2 text-xs text-amber-800">
                   <div>
-                    <span className="font-medium">Admin:</span> usuario: <code className="bg-white px-1 py-0.5 rounded">admin</code> | contraseña: <code className="bg-white px-1 py-0.5 rounded">cualquiera</code>
+                    <span className="font-medium">Admin:</span> <code className="bg-white px-1 py-0.5 rounded">admin</code>
                   </div>
                   <div>
-                    <span className="font-medium">Médico:</span> usuario: <code className="bg-white px-1 py-0.5 rounded">medico_prueba</code> | contraseña: <code className="bg-white px-1 py-0.5 rounded">cualquiera</code>
+                    <span className="font-medium">Médico:</span> <code className="bg-white px-1 py-0.5 rounded">MED-2025-001</code>
                   </div>
                   <div>
-                    <span className="font-medium">Enfermera:</span> usuario: <code className="bg-white px-1 py-0.5 rounded">enfermera_prueba</code> | contraseña: <code className="bg-white px-1 py-0.5 rounded">cualquiera</code>
+                    <span className="font-medium">Contraseña:</span> Generada automáticamente o configurada por director
                   </div>
                 </div>
               </div>

@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS hosix_almacenes (
   area_m2 DECIMAL(10,2),
   
   -- Responsable
-  responsable_id UUID REFERENCES profesionales_sanitarios(id),
+  responsable_id UUID REFERENCES hosix_usuarios(id) ON DELETE SET NULL,
   
   -- Características
   requiere_refrigeracion BOOLEAN DEFAULT false,
@@ -114,28 +114,28 @@ CREATE TABLE IF NOT EXISTS hosix_stock (
   articulo_id UUID REFERENCES hosix_articulos(id) NOT NULL,
   almacen_id UUID REFERENCES hosix_almacenes(id) NOT NULL,
   deposito_id UUID REFERENCES hosix_almacenes_depositos(id),
-  
+
   -- Cantidad
   cantidad_actual DECIMAL(15,2) NOT NULL DEFAULT 0,
   cantidad_reservada DECIMAL(15,2) DEFAULT 0,
   cantidad_disponible DECIMAL(15,2) GENERATED ALWAYS AS (cantidad_actual - cantidad_reservada) STORED,
-  
+
   -- Umbrales
   stock_minimo DECIMAL(15,2),
   stock_maximo DECIMAL(15,2),
-  
+
   -- Último movimiento
   fecha_ultimo_movimiento TIMESTAMPTZ,
-  
+
   -- Control de caducidad
   requiere_lote BOOLEAN DEFAULT false,
   requiere_caducidad BOOLEAN DEFAULT false,
-  
+
   -- Metadatos
   actualizado_por UUID REFERENCES auth.users(id),
-  
+
   UNIQUE(articulo_id, almacen_id),
-  
+
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -168,9 +168,6 @@ CREATE TABLE IF NOT EXISTS hosix_stock_lotes (
   
   -- Caducidad (FIFO)
   fecha_vencimiento DATE,
-  dias_para_vencer INT GENERATED ALWAYS AS (
-    EXTRACT(DAY FROM (fecha_vencimiento - CURRENT_DATE))::INT
-  ) STORED,
   
   -- Control
   activo BOOLEAN DEFAULT true,
@@ -225,7 +222,7 @@ CREATE TABLE IF NOT EXISTS hosix_stock_movimientos (
   
   -- Información adicional
   motivo TEXT,
-  aprobado_por UUID REFERENCES profesionales_sanitarios(id),
+  aprobado_por UUID REFERENCES hosix_usuarios(id) ON DELETE SET NULL,
   
   -- Para movimientos a paciente
   paciente_id UUID REFERENCES hosix_pacientes(id),
@@ -318,7 +315,7 @@ FOR UPDATE USING (
 CREATE TABLE IF NOT EXISTS hosix_ordenes_compra_lineas (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   orden_compra_id UUID REFERENCES hosix_ordenes_compra(id) NOT NULL,
-  
+
   articulo_id UUID REFERENCES hosix_articulos(id) NOT NULL,
   cantidad_solicitada DECIMAL(15,2) NOT NULL,
   cantidad_recibida DECIMAL(15,2) DEFAULT 0,
@@ -400,7 +397,7 @@ FOR UPDATE USING (
 CREATE TABLE IF NOT EXISTS hosix_inventarios_lineas (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   inventario_id UUID REFERENCES hosix_inventarios(id) NOT NULL,
-  
+
   articulo_id UUID REFERENCES hosix_articulos(id) NOT NULL,
   
   -- Cantidades
@@ -449,7 +446,7 @@ CREATE TABLE IF NOT EXISTS hosix_centros_coste (
   descripcion TEXT,
   
   servicio_id UUID REFERENCES hosix_servicios(id),
-  responsable_id UUID REFERENCES profesionales_sanitarios(id),
+  responsable_id UUID REFERENCES hosix_usuarios(id) ON DELETE SET NULL,
   
   activo BOOLEAN DEFAULT true,
   

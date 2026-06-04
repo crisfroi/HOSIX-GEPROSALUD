@@ -1,0 +1,191 @@
+================================================================================
+✅ FASE 2 - CIE-11 INTEGRACIÓN - QUICK START
+================================================================================
+
+📅 Fecha: 4 de Junio 2026
+🔴 Status: LISTO PARA TESTING INMEDIATO
+⏱️ Tiempo total testing: 2-3 horas
+
+================================================================================
+1️⃣ CARGA DE SEED DATA (5 MINUTOS)
+================================================================================
+
+PASO 1: Abrir Supabase SQL Editor
+  → https://app.supabase.com → Proyecto wdieynendfjbkbhfovrx → SQL Editor
+
+PASO 2: Copiar script de seed
+  → Archivo: implementacion_v3/FASE_2_CIE11_Codificacion/Scripts_Validacion/
+             seed_cie11_ejemplos.sql
+  → Copiar TODO (Cmd+A, Cmd+C)
+
+PASO 3: Ejecutar en Supabase
+  → Pegar en SQL Editor (Cmd+V)
+  → Click "Run" o Cmd+Enter
+  → Esperar: "Query completed successfully"
+  → Resultado esperado: 27 registros insertados
+
+✅ VERIFICACIÓN:
+  SELECT COUNT(*) FROM hosix_cie11_cache;
+  → Debe retornar: 27 (mínimo)
+
+================================================================================
+2️⃣ TESTING EN BROWSER (30 MINUTOS)
+================================================================================
+
+PASO 1: Iniciar dev server
+  → Terminal: npm run dev
+  → Esperar compile sin errores
+
+PASO 2: Abrir DevTools
+  → F12 (Windows/Linux) o Cmd+Option+J (Mac)
+  → Ir a pestaña: Network
+
+PASO 3: Buscar en ECT
+  → Navegar a cualquier formulario clínico con CIE-11
+  → Click en input de búsqueda del ECT
+  → Escribir: "tuberculosis"
+  → Esperar resultados en 2 segundos
+
+✅ VERIFICACIONES:
+  ☑ ECT carga sin errores CORS (Network tab)
+  ☑ Resultados en ESPAÑOL
+  ☑ Código: BA12.34
+  ☑ Título: Tuberculosis pulmonar
+  ☑ Console sin errores rojos
+
+PASO 4: Seleccionar diagnóstico
+  → Click en "Tuberculosis pulmonar"
+  → Verificar que aparece en lista
+  → Editar "Tipo diagnóstico" (dropdown)
+  → Editar "Certeza" (dropdown)
+
+✅ RESULTADO:
+  ☑ Selección capturada
+  ☑ Aparece en lista de diagnósticos
+  ☑ Código y título correctos
+  ☑ Campos editables
+
+================================================================================
+3️⃣ TESTING EN 4 FORMULARIOS (1 HORA)
+================================================================================
+
+┌─ CONSULTA MÉDICA ────────────────────────────────────────┐
+│                                                            │
+│  1. Crear nueva Consulta Médica                           │
+│  2. Llenar campos básicos                                 │
+│  3. Buscar "diabetes" en CIE-11                           │
+│  4. Seleccionar "Diabetes mellitus tipo 1"                │
+│  5. Guardar Consulta                                      │
+│                                                            │
+│  ✅ Verificar en Supabase:                                │
+│     SELECT * FROM hosix_diagnosticos                      │
+│     WHERE codigo_cie11 = '5A11.1';                        │
+└────────────────────────────────────────────────────────────┘
+
+┌─ URGENCIAS ──────────────────────────────────────────────┐
+│                                                            │
+│  1. Crear Atención de Urgencia                            │
+│  2. Buscar "covid" en CIE-11                              │
+│  3. Seleccionar "COVID-19"                                │
+│  4. Asignar Tipo: Confirmado                              │
+│  5. Cerrar Episodio                                       │
+│                                                            │
+│  ✅ Verificar en Supabase:                                │
+│     SELECT * FROM hosix_urgencias_episodios               │
+│     WHERE cie11_final_codigo = 'RA01.0';                  │
+└────────────────────────────────────────────────────────────┘
+
+┌─ HOSPITALIZACIÓN - INGRESO ──────────────────────────────┐
+│                                                            │
+│  1. Crear nuevo Ingreso                                   │
+│  2. Buscar "asma" en CIE-11                               │
+│  3. Seleccionar "Asma bronquial"                          │
+│  4. Crear Hospitalización                                 │
+│                                                            │
+│  ✅ Verificar en Supabase:                                │
+│     SELECT * FROM hosix_hospitalizacion_episodios         │
+│     WHERE cie11_ingreso_codigo = 'CA25';                  │
+└────────────────────────────────────────────────────────────┘
+
+┌─ HOSPITALIZACIÓN - ALTA ─────────────────────────────────┐
+│                                                            │
+│  1. Abrir Hospitalización activa                          │
+│  2. Click "Dar de Alta"                                   │
+│  3. Buscar "hipertensión" en CIE-11                       │
+│  4. Seleccionar "Hipertensión esencial"                   │
+│  5. Dar de Alta                                           │
+│                                                            │
+│  ✅ Verificar en Supabase:                                │
+│     SELECT * FROM hosix_hospitalizacion_episodios         │
+│     WHERE cie11_alta_codigo = 'BA00.10'                   │
+│     AND fecha_alta IS NOT NULL;                           │
+└────────────────────────────────────────────────────────────┘
+
+================================================================================
+4️⃣ VALIDACIÓN BI Y CIERRE (30 MINUTOS)
+================================================================================
+
+VERIFICAR VISTA MATERIALIZADA:
+
+  SELECT 
+    tipo_evento,
+    codigo_cie11,
+    titulo_cie11,
+    COUNT(*) as casos
+  FROM hosix_bi_morbilidad_cie11
+  WHERE codigo_cie11 IS NOT NULL
+  GROUP BY tipo_evento, codigo_cie11, titulo_cie11;
+
+✅ ESPERADO:
+  Deben aparecer los diagnósticos que cargaste en los 4 formularios
+
+================================================================================
+5️⃣ PROBLEMAS COMUNES Y SOLUCIONES
+================================================================================
+
+❌ CORS Error loading ECT CSS/JS
+   → Verificar: VITE_ICD_API_URL=http://localhost:8090 en .env.local
+   → Reiniciar: npm run dev
+
+❌ "relation hosix_cie11_cache does not exist"
+   → Migración CIE-11 no se aplicó
+   → Ejecutar en Supabase: supabase/migrations/20260603_022_cie11_integracion.sql
+
+❌ Column "activo" does not exist
+   → El script seed ha sido corregido
+   → Descarga la última versión de seed_cie11_ejemplos.sql
+
+❌ Los diagnósticos no aparecen en búsqueda
+   → ECT busca en Docker WHO, no en BD local
+   → Verificar Docker: http://localhost:8090/swagger/index.html
+
+================================================================================
+6️⃣ VERIFICACIÓN FINAL - CHECKLIST
+================================================================================
+
+  ☑ .env.local creado con VITE_ICD_API_URL
+  ☑ Seed data cargado (27 registros)
+  ☑ ECT busca en español
+  ☑ ConsultaMedicaForm funciona
+  ☑ AtencionForm funciona
+  ☑ IngresoPacienteForm funciona
+  ☑ AltaForm funciona
+  ☑ Datos se guardan en BD
+  ☑ Vista BI tiene registros
+  ☑ Console limpia (sin errores)
+
+================================================================================
+7️⃣ DOCUMENTACIÓN DETALLADA
+================================================================================
+
+Para información más detallada, ver:
+
+  📄 Documentacion/FASE_2_TESTING_DETALLADO.md (648 líneas)
+  📄 Documentacion/INSTRUCCIONES_CARGA_SEED.md (197 líneas)
+  📄 Documentacion/PLAN_FASE2_DETALLADO.md (609 líneas)
+
+================================================================================
+
+¡LISTO PARA COMENZAR!
+
+================================================================================

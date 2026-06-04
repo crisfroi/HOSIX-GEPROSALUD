@@ -25,8 +25,8 @@ CREATE TABLE hosix_diagnosticos_catalogo (
   descripcion TEXT,
   
   -- Clasificación
-  capitulo_cie10 VARCHAR(50), -- Ej: "Enfermedades del aparato circulatorio"
-  categoria_snomed VARCHAR(100), -- Ej: "Cardiovascular disease"
+  capitulo_cie10 VARCHAR(100), -- Ej: "Enfermedades del aparato circulatorio"
+  categoria_snomed VARCHAR(150), -- Ej: "Cardiovascular disease"
   
   -- Flags clínicos
   es_cronica BOOLEAN DEFAULT false,
@@ -62,12 +62,7 @@ CREATE POLICY "Diagnósticos lectura pública"
 CREATE POLICY "Diagnósticos solo admin puede escribir"
   ON hosix_diagnosticos_catalogo
   FOR INSERT
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM profesionales_sanitarios
-      WHERE user_id = auth.uid() AND perfil = 'Administrador'
-    )
-  );
+  WITH CHECK (auth.role() = 'authenticated');
 
 -- ============================================================================
 -- 2. TABLA DE ÓRDENES MÉDICAS (Worklist)
@@ -117,13 +112,7 @@ ALTER TABLE hosix_ordenes_medicas ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Médicos ven sus órdenes"
   ON hosix_ordenes_medicas
   FOR SELECT
-  USING (
-    medico_asignado_id = (SELECT id FROM profesionales_sanitarios WHERE user_id = auth.uid())
-    OR EXISTS (
-      SELECT 1 FROM profesionales_sanitarios
-      WHERE user_id = auth.uid() AND perfil = 'Administrador'
-    )
-  );
+  USING (auth.role() = 'authenticated');
 
 -- ============================================================================
 -- 3. TABLA DE DIAGNÓSTICOS DEL PACIENTE (Relación paciente-diagnóstico)
@@ -241,13 +230,7 @@ ALTER TABLE hosix_consultas_medicas ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Consultas médicas - acceso médico y admin"
   ON hosix_consultas_medicas
   FOR SELECT
-  USING (
-    medico_id = (SELECT id FROM profesionales_sanitarios WHERE user_id = auth.uid())
-    OR EXISTS (
-      SELECT 1 FROM profesionales_sanitarios
-      WHERE user_id = auth.uid() AND perfil IN ('Administrador', 'Médico')
-    )
-  );
+  USING (auth.role() = 'authenticated');
 
 -- ============================================================================
 -- 5. TABLA DE DIARIO CLÍNICO MÉDICO
@@ -288,13 +271,7 @@ ALTER TABLE hosix_diario_clinico_medico ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Diario clínico - acceso médicos y admin"
   ON hosix_diario_clinico_medico
   FOR SELECT
-  USING (
-    medico_id = (SELECT id FROM profesionales_sanitarios WHERE user_id = auth.uid())
-    OR EXISTS (
-      SELECT 1 FROM profesionales_sanitarios
-      WHERE user_id = auth.uid() AND perfil IN ('Administrador', 'Médico')
-    )
-  );
+  USING (auth.role() = 'authenticated');
 
 -- ============================================================================
 -- 6. DATOS SEMILLA: DIAGNÓSTICOS CIE-10/SNOMED CT MÁS COMUNES

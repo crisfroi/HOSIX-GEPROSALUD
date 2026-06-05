@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import IngresoPacienteForm from '@/components/hosix/hospitalizacion/IngresoPacienteForm';
 import AltaForm from '@/components/hosix/hospitalizacion/AltaForm';

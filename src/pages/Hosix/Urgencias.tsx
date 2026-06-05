@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import UrgenciasWorklist from '@/components/hosix/urgencias/UrgenciasWorklist';
 import TriageForm from '@/components/hosix/urgencias/TriageForm';

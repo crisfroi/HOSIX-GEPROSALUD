@@ -1,5 +1,4 @@
 import React, { useState } from 'react'
-import { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { LogIn, BarChart3, AlertCircle } from 'lucide-react'
 import AdmisionCentralForm from '@/components/hosix/admision/AdmisionCentralForm'

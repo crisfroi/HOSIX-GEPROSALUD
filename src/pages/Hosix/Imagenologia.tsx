@@ -1,5 +1,4 @@
 import React, { useState } from 'react'
-import { useState } from 'react'
 import { useHosixImagenologia } from '@/hooks/useHosixImagenologia'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'

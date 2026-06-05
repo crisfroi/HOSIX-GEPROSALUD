@@ -1,5 +1,4 @@
 import React, { useState } from 'react'
-import { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Pill, Eye, Plus, History } from 'lucide-react'
 import CPOEPrescripcionForm from '@/components/hosix/prescripcion/CPOEPrescripcionForm'

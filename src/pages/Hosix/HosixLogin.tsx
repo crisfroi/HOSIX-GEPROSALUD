@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Hospital, Lock, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,14 +18,19 @@ const HosixLogin: React.FC = () => {
   const [error, setError] = useState('');
   const isLoading = adminLoading || profLoading;
 
+  // Redirección si ya existe una sesión activa
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/hosix');
-    }
-    if (profesionalSession) {
+    if (isAuthenticated || profesionalSession) {
       navigate('/hosix');
     }
   }, [isAuthenticated, profesionalSession, navigate]);
+
+  // Sincronizar errores globales de los hooks con el estado local
+  useEffect(() => {
+    if (authError) {
+      setError(authError);
+    }
+  }, [authError]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,25 +41,27 @@ const HosixLogin: React.FC = () => {
       return;
     }
 
+    const trimmedUsername = username.trim();
+
     // Detectar si es profesional: formato MED-2025-001 o similar
-    const isProfesional = /^[A-Z]{2,}-\d{4}-\d{3}$/.test(username.trim());
+    const isProfesional = /^[A-Z]{2,}-\d{4}-\d{3}$/.test(trimmedUsername);
 
     try {
       if (isProfesional) {
         // Login de profesional
-        const result = await loginProfesional(username.trim(), password);
-        if (result.success) {
-          // El hook maneja el cambio obligatorio de contraseña
+        const result = await loginProfesional(trimmedUsername, password);
+        if (result?.success) {
+          // El hook maneja el cambio obligatorio de contraseña internamente
           navigate('/hosix');
         }
       } else {
         // Login de admin
-        await login(username, password);
+        await login(trimmedUsername, password);
         navigate('/hosix');
       }
-    } catch (err) {
-      setError(authError || 'Error al iniciar sesión. Verifique sus credenciales.');
+    } catch (err: any) {
       console.error(err);
+      setError(err?.message || authError || 'Error al iniciar sesión. Verifique sus credenciales.');
     }
   };
 
@@ -133,8 +139,8 @@ const HosixLogin: React.FC = () => {
 
               {/* Remember Me & Forgot Password */}
               <div className="flex items-center justify-between text-sm">
-                <label className="flex items-center">
-                  <input type="checkbox" className="mr-2" />
+                <label className="flex items-center cursor-pointer">
+                  <input type="checkbox" className="mr-2 rounded border-gray-300" />
                   <span>Recuérdame</span>
                 </label>
                 <a href="#" className="text-blue-600 hover:underline">

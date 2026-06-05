@@ -67,6 +67,9 @@ export default function SalaEspera() {
           }
 
           setTickets(newTickets)
+      } catch (err) {
+        console.error('Error fetching tickets', err)
+      }
     }
 
     fetchTickets()
@@ -148,7 +151,7 @@ export default function SalaEspera() {
           </CardHeader>
           <CardContent>
             <div className="w-full">
-              <ReactPlayer url={getDefaultPlaylistUrl()} width="100%" height={240} controls playing loop />
+              <ReactPlayer url="https://www.youtube.com/watch?v=dQw4w9WgXcQ" width="100%" height={240} controls playing loop />
             </div>
             <div className="mt-4">
               <p className="text-sm text-gray-600">Turno actual: A-104 (ejemplo). Últimos llamados en la lista.</p>
@@ -180,10 +183,4 @@ export default function SalaEspera() {
       </div>
     </div>
   )
-}
-
-function getDefaultPlaylistUrl() {
-  // Intenta leer desde storage público; fallback a un video de YouTube
-  // El equipo puede cambiar esto para usar un bucket Supabase
-  return 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
 }

@@ -184,6 +184,16 @@ const AgendasList: React.FC = () => {
                               {profesional.nombre_completo || `${profesional.primer_nombre || ''} ${profesional.primer_apellido || ''}`.trim()} {profesional.especialidad ? `- ${profesional.especialidad}` : ''}
                             </SelectItem>
                           ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="duracion">Duración Promedio (minutos)</Label>
+                      <Input
+                        id="duracion"
+                        type="number"
+                        value={formData.duracion_default_minutos}
                         onChange={(e) => setFormData({ ...formData, duracion_default_minutos: parseInt(e.target.value) })}
                         min="5"
                         max="480"

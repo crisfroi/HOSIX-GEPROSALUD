@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Heart, Activity, FileText, ClipboardList, Droplet } from 'lucide-react';
 import WorklistEnfermeria from '@/components/hosix/enfermeria/WorklistEnfermeria';
@@ -110,4 +111,3 @@ export default function Enfermeria() {
     </div>
   );
 }
-

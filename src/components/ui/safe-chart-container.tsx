@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { ResponsiveContainer } from 'recharts';
 import { measureElement } from '@/utils/errorSuppression';
 

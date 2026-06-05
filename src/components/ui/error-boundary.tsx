@@ -3,7 +3,7 @@ import { AlertTriangle, RefreshCw, ShieldAlert } from 'lucide-react';
 import { Button } from './button';
 import { Card, CardContent, CardHeader, CardTitle } from './card';
 import { StorageCleanup } from '@/utils/storageCleanup';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/app/supabase';
 
 interface Props {
   children: ReactNode;

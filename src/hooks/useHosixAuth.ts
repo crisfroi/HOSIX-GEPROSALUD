@@ -1,4 +1,5 @@
-﻿import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, validateCentroMembership } from '@/integrations/supabase/hosixClient';
 import { useToast } from '@/components/ui/use-toast';
@@ -156,4 +157,3 @@ export const useHosixAuth = () => {
     requireLogin,
   };
 };
-

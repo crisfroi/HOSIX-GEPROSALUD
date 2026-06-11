@@ -9,7 +9,7 @@ export const useHosixInterconsultas = () => {
     queryKey: ['hosix_interconsultas_solicitudes'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('hosix_interconsultas_solicitudes')
+        .from('hosix_interconsultas')
         .select('*')
         .order('fecha_solicitud', { ascending: false })
       if (error) throw error

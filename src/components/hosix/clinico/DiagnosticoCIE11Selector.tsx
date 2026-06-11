@@ -22,6 +22,8 @@ declare global {
 }
 
 const ICD_API = import.meta.env.VITE_ICD_API_URL ?? 'http://localhost:8090'
+const ECT_JS_URL = `${ICD_API}/assets/js/ect/icd11ect-1.8.js`
+const ECT_CSS_URL = `${ICD_API}/assets/css/ect/icd11ect-1.8.css`
 
 const TIPO_LABEL: Record<string, string> = {
   principal: 'Principal',
@@ -77,7 +79,15 @@ export function DiagnosticoCIE11Selector({
       const link = document.createElement('link')
       link.id = cssId
       link.rel = 'stylesheet'
-      link.href = `${ICD_API}/ct/icd11ect-1.8.css`
+      link.href = ECT_CSS_URL
+      link.onerror = () => {
+        // Fallback a ruta alternativa si falla
+        link.href = `${ICD_API}/ct11/assets/css/ect/icd11ect-1.8.css`
+        link.onerror = () => {
+          // Fallback final a CDN externo
+          link.href = 'https://mitel.dimi.uniud.it/ect/icd11ect-1.8.css'
+        }
+      }
       document.head.appendChild(link)
     }
 
@@ -85,8 +95,23 @@ export function DiagnosticoCIE11Selector({
     if (!document.getElementById(jsId)) {
       const script = document.createElement('script')
       script.id = jsId
-      script.src = `${ICD_API}/ct/icd11ect-1.8.js`
+      script.src = ECT_JS_URL
       script.onload = configurarECT
+      script.onerror = () => {
+        // Fallback a ruta alternativa si falla
+        script.src = `${ICD_API}/ct11/assets/js/ect/icd11ect-1.8.js`
+        script.onload = configurarECT
+        script.onerror = () => {
+          // Fallback final a CDN externo
+          script.src = 'https://mitel.dimi.uniud.it/ect/icd11ect-1.8.js'
+          script.onload = configurarECT
+          script.onerror = () => {
+            toast.error('No se pudo cargar el Coding Tool de ICD-11. Verifica que el Docker está corriendo en http://localhost:8090')
+          }
+          document.body.appendChild(script)
+        }
+        document.body.appendChild(script)
+      }
       document.body.appendChild(script)
     } else {
       configurarECT()

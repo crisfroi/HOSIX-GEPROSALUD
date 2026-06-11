@@ -1,9 +1,14 @@
 import { useState, useCallback } from 'react'
-import { useState, useCallback } from 'react'
 import { useToast } from '@/components/ui/use-toast'
 import { supabase } from '@/integrations/supabase/hosixClient'
-import { useAuthStore, AuthUser } from '@/stores/authStore'
 
+// ─── Constantes de configuración ────────────────────────────────────────────
+const SESSION_KEY = 'profesional_session'
+const MAX_INTENTOS_FALLIDOS = 5
+const BLOQUEO_MINUTOS = 15
+const SESION_HORAS = 8
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
 export interface ProfesionalSession {
   usuario_id: string
   id_profesional: string
@@ -21,50 +26,104 @@ interface LoginResponse {
   requiresPasswordChange?: boolean
 }
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
 /**
- * Hook para autenticación local de profesionales sanitarios
- * Los profesionales se autentican con ID único + contraseña
- * (NO usan Supabase Auth, es autenticación local)
+ * Devuelve la sesión almacenada en localStorage si aún es válida,
+ * o null si expiró o no existe.
+ */
+function cargarSesionAlmacenada(): ProfesionalSession | null {
+  try {
+    const stored = localStorage.getItem(SESSION_KEY)
+    if (!stored) return null
+
+    const session = JSON.parse(stored) as ProfesionalSession
+    if (new Date(session.expiresAt) > new Date()) return session
+
+    localStorage.removeItem(SESSION_KEY)
+  } catch (err) {
+    console.error('Error al leer la sesión de profesional:', err)
+  }
+  return null
+}
+
+/**
+ * Hash mínimo de contraseña (Base64).
+ * ⚠️ NOTA DE SEGURIDAD: Base64 NO es un hash seguro.
+ * Migrar a bcrypt mediante una Supabase Edge Function antes de producción.
+ */
+function hashPassword(password: string): string {
+  return btoa(password)
+}
+
+/**
+ * Calcula la fecha de expiración sumando `horas` a la fecha actual.
+ */
+function calcularExpiracion(horas: number): Date {
+  const fecha = new Date()
+  fecha.setHours(fecha.getHours() + horas)
+  return fecha
+}
+
+// ─── Hook ────────────────────────────────────────────────────────────────────
+
+/**
+ * Hook para autenticación local de profesionales sanitarios.
+ * Los profesionales se autentican con ID único + contraseña.
+ * (NO usan Supabase Auth — es autenticación local con tabla propia.)
  */
 export const useProfesionalAuth = () => {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [profesionalSession, setProfesionalSession] = useState<ProfesionalSession | null>(
-    () => {
-      try {
-        const stored = localStorage.getItem('profesional_session')
-        if (stored) {
-          const session = JSON.parse(stored) as ProfesionalSession
-          const expiresAt = new Date(session.expiresAt)
-          if (expiresAt > new Date()) {
-            return session
-          }
-          localStorage.removeItem('profesional_session')
-        }
-      } catch (err) {
-        console.error('Error parsing profesional session:', err)
+  const [profesionalSession, setProfesionalSession] =
+    useState<ProfesionalSession | null>(cargarSesionAlmacenada)
+
+  // ── Utilidades internas ──────────────────────────────────────────────────
+
+  /** Persiste la sesión en estado y localStorage. */
+  const guardarSesion = useCallback((session: ProfesionalSession) => {
+    setProfesionalSession(session)
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+  }, [])
+
+  /** Elimina la sesión del estado y localStorage. */
+  const eliminarSesion = useCallback(() => {
+    setProfesionalSession(null)
+    localStorage.removeItem(SESSION_KEY)
+  }, [])
+
+  /** Muestra un toast de error y actualiza el estado de error. */
+  const manejarError = useCallback(
+    (msg: string, mostrarToast = false) => {
+      setError(msg)
+      if (mostrarToast) {
+        toast({ title: 'Error', description: msg, variant: 'destructive' })
       }
-      return null
-    }
+    },
+    [toast]
   )
 
+  // ── loginProfesional ─────────────────────────────────────────────────────
+
   /**
-   * Intenta hacer login con ID de profesional + contraseña
+   * Autentica a un profesional con su ID único y contraseña.
    */
   const loginProfesional = useCallback(
     async (idProfesional: string, password: string): Promise<LoginResponse> => {
-      try {
-        setIsLoading(true)
-        setError(null)
+      setIsLoading(true)
+      setError(null)
 
-        if (!idProfesional || !password) {
+      try {
+        // Validación de entrada
+        const idTrimmed = idProfesional.trim()
+        if (!idTrimmed || !password) {
           const msg = 'ID de profesional y contraseña requeridos'
-          setError(msg)
+          manejarError(msg)
           return { success: false, error: msg }
         }
 
-        // 1. Obtener usuario profesional por ID
+        // 1. Buscar usuario activo y profesional
         const { data: usuario, error: queryError } = await supabase
           .from('hosix_usuarios')
           .select(
@@ -75,81 +134,66 @@ export const useProfesionalAuth = () => {
             especialidad,
             contrasena_hasheada,
             cambio_password_requerido,
-            activo,
             bloqueado_hasta,
             intentos_fallidos`
           )
-          .eq('id_profesional_unico', idProfesional.trim())
+          .eq('id_profesional_unico', idTrimmed)
           .eq('es_profesional', true)
           .eq('activo', true)
-          .single()
+          .maybeSingle()   // evita excepción cuando no hay filas
 
-        if (queryError || !usuario) {
+        if (queryError) {
+          console.error('Error al consultar usuario:', queryError)
+          const msg = 'Error al verificar credenciales'
+          manejarError(msg, true)
+          return { success: false, error: msg }
+        }
+
+        if (!usuario) {
           const msg = 'ID de profesional no encontrado'
-          setError(msg)
-          toast({
-            title: 'Error',
-            description: msg,
-            variant: 'destructive',
-          })
+          manejarError(msg, true)
           return { success: false, error: msg }
         }
 
         // 2. Verificar bloqueo temporal
-        if (usuario.bloqueado_hasta) {
-          const bloqueadoHasta = new Date(usuario.bloqueado_hasta)
-          if (bloqueadoHasta > new Date()) {
-            const msg = 'Cuenta bloqueada temporalmente por intentos fallidos'
-            setError(msg)
-            return { success: false, error: msg }
-          }
-        }
-
-        // 3. Validar contraseña (simple comparación por ahora)
-        // NOTA: En producción, usar bcrypt.compare() con pgcrypto o Edge Function
-        // Por ahora, asumimos que la contraseña viene hasheada en la BD
-        const passwordMatches = usuario.contrasena_hasheada === btoa(password)
-
-        if (!passwordMatches) {
-          // Incrementar intentos fallidos
-          const intentosFallidos = (usuario.intentos_fallidos || 0) + 1
-          let bloqueadoHasta: Date | null = null
-
-          // Bloquear después de 5 intentos fallidos
-          if (intentosFallidos >= 5) {
-            bloqueadoHasta = new Date()
-            bloqueadoHasta.setMinutes(bloqueadoHasta.getMinutes() + 15) // 15 minutos
-
-            await supabase
-              .from('hosix_usuarios')
-              .update({
-                intentos_fallidos: intentosFallidos,
-                bloqueado_hasta: bloqueadoHasta.toISOString(),
-              })
-              .eq('id', usuario.id)
-
-            const msg = 'Demasiados intentos fallidos. Cuenta bloqueada 15 minutos.'
-            setError(msg)
-            return { success: false, error: msg }
-          }
-
-          // Registrar intento fallido
-          await supabase
-            .from('hosix_usuarios')
-            .update({ intentos_fallidos: intentosFallidos })
-            .eq('id', usuario.id)
-
-          const msg = `Contraseña incorrecta (${intentosFallidos}/5 intentos)`
-          setError(msg)
-          toast({
-            title: 'Error',
-            description: msg,
-            variant: 'destructive',
-          })
+        if (usuario.bloqueado_hasta && new Date(usuario.bloqueado_hasta) > new Date()) {
+          const msg = 'Cuenta bloqueada temporalmente por intentos fallidos'
+          manejarError(msg)
           return { success: false, error: msg }
         }
 
-        // 4. Login exitoso - resetear intentos fallidos
+        // 3. Validar contraseña
+        const passwordMatches = usuario.contrasena_hasheada === hashPassword(password)
+
+        if (!passwordMatches) {
+          const intentosFallidos = (usuario.intentos_fallidos ?? 0) + 1
+          const bloqueado = intentosFallidos >= MAX_INTENTOS_FALLIDOS
+
+          const updatePayload = bloqueado
+            ? {
+                intentos_fallidos: intentosFallidos,
+                bloqueado_hasta: (() => {
+                  const t = new Date()
+                  t.setMinutes(t.getMinutes() + BLOQUEO_MINUTOS)
+                  return t.toISOString()
+                })(),
+              }
+            : { intentos_fallidos: intentosFallidos }
+
+          await supabase
+            .from('hosix_usuarios')
+            .update(updatePayload)
+            .eq('id', usuario.id)
+
+          const msg = bloqueado
+            ? `Demasiados intentos fallidos. Cuenta bloqueada ${BLOQUEO_MINUTOS} minutos.`
+            : `Contraseña incorrecta (${intentosFallidos}/${MAX_INTENTOS_FALLIDOS} intentos)`
+
+          manejarError(msg, !bloqueado)
+          return { success: false, error: msg }
+        }
+
+        // 4. Login exitoso — resetear contadores y registrar acceso
         await supabase
           .from('hosix_usuarios')
           .update({
@@ -159,69 +203,70 @@ export const useProfesionalAuth = () => {
           })
           .eq('id', usuario.id)
 
-        // 5. Obtener nombre del centro
+        // 5. Obtener nombre del centro (en paralelo con la actualización anterior)
         const { data: centro } = await supabase
           .from('centros_salud')
           .select('nombre')
           .eq('id', usuario.centro_salud_id)
-          .single()
+          .maybeSingle()
 
-        // 6. Crear sesión
-        const expiresAt = new Date()
-        expiresAt.setHours(expiresAt.getHours() + 8)
-
+        // 6. Crear y persistir sesión
         const session: ProfesionalSession = {
           usuario_id: usuario.id,
-          id_profesional: usuario.id_profesional_unico || '',
+          id_profesional: usuario.id_profesional_unico ?? '',
           nombre_completo: usuario.nombre_completo,
           centro_salud_id: usuario.centro_salud_id,
-          centro_salud_nombre: centro?.nombre,
-          especialidad: usuario.especialidad || undefined,
-          cambio_password_requerido: usuario.cambio_password_requerido || false,
-          expiresAt: expiresAt.toISOString(),
+          centro_salud_nombre: centro?.nombre ?? undefined,
+          especialidad: usuario.especialidad ?? undefined,
+          cambio_password_requerido: usuario.cambio_password_requerido ?? false,
+          expiresAt: calcularExpiracion(SESION_HORAS).toISOString(),
         }
 
-        setProfesionalSession(session)
-        localStorage.setItem('profesional_session', JSON.stringify(session))
+        guardarSesion(session)
 
         toast({
           title: 'Bienvenido',
-          description: `Bienvenido ${usuario.nombre_completo}`,
+          description: `Bienvenido, ${usuario.nombre_completo}`,
         })
 
         return {
           success: true,
-          requiresPasswordChange: usuario.cambio_password_requerido || false,
+          requiresPasswordChange: session.cambio_password_requerido,
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Error desconocido'
-        setError(msg)
+        manejarError(msg)
         console.error('Error en login de profesional:', err)
         return { success: false, error: msg }
       } finally {
         setIsLoading(false)
       }
     },
-    [toast]
+    [guardarSesion, manejarError, toast]
   )
 
+  // ── cambiarContrasena ────────────────────────────────────────────────────
+
   /**
-   * Cambiar contraseña del profesional
+   * Cambia la contraseña del profesional autenticado.
+   * Registra el cambio en la tabla de auditoría.
    */
   const cambiarContrasena = useCallback(
-    async (usuarioId: string, passwordAnterior: string, passwordNueva: string) => {
-      try {
-        setIsLoading(true)
-        setError(null)
+    async (
+      usuarioId: string,
+      passwordAnterior: string,
+      passwordNueva: string
+    ): Promise<boolean> => {
+      setIsLoading(true)
+      setError(null)
 
-        // Validar que la nueva contraseña sea diferente
+      try {
         if (passwordAnterior === passwordNueva) {
-          const msg = 'La nueva contraseña debe ser diferente a la anterior'
-          setError(msg)
+          manejarError('La nueva contraseña debe ser diferente a la anterior')
           return false
         }
 
-        // Obtener usuario actual para validar password anterior
+        // Obtener hash actual para validación
         const { data: usuario, error: queryError } = await supabase
           .from('hosix_usuarios')
           .select('contrasena_hasheada')
@@ -232,22 +277,16 @@ export const useProfesionalAuth = () => {
           throw new Error('Usuario no encontrado')
         }
 
-        // Validar password anterior
-        const passwordAnteriorMatch = usuario.contrasena_hasheada === btoa(passwordAnterior)
-        if (!passwordAnteriorMatch) {
-          const msg = 'Contraseña actual incorrecta'
-          setError(msg)
+        if (usuario.contrasena_hasheada !== hashPassword(passwordAnterior)) {
+          manejarError('Contraseña actual incorrecta')
           return false
         }
-
-        // Hash de la nueva contraseña
-        const newPasswordHash = btoa(passwordNueva)
 
         // Actualizar contraseña
         const { error: updateError } = await supabase
           .from('hosix_usuarios')
           .update({
-            contrasena_hasheada: newPasswordHash,
+            contrasena_hasheada: hashPassword(passwordNueva),
             cambio_password_requerido: false,
             updated_at: new Date().toISOString(),
           })
@@ -255,54 +294,49 @@ export const useProfesionalAuth = () => {
 
         if (updateError) throw updateError
 
-        // Registrar cambio en auditoría
-        await supabase.from('hosix_profesionales_cambios_password').insert({
-          usuario_id: usuarioId,
-          password_anterior_hash: usuario.contrasena_hasheada,
-          cambio_tipo: 'obligatorio',
-          motivo: 'Primer login - cambio obligatorio',
-        })
+        // Auditoría (sin bloquear el flujo si falla)
+        await supabase
+          .from('hosix_profesionales_cambios_password')
+          .insert({
+            usuario_id: usuarioId,
+            password_anterior_hash: usuario.contrasena_hasheada,
+            cambio_tipo: 'obligatorio',
+            motivo: 'Primer login - cambio obligatorio',
+          })
+          .then(({ error }) => {
+            if (error) console.warn('No se pudo registrar auditoría de contraseña:', error)
+          })
 
-        toast({
-          title: 'Éxito',
-          description: 'Contraseña cambiada correctamente',
-        })
+        toast({ title: 'Éxito', description: 'Contraseña cambiada correctamente' })
 
-        // Actualizar sesión
+        // Actualizar sesión en memoria y localStorage
         if (profesionalSession) {
-          const updatedSession = {
-            ...profesionalSession,
-            cambio_password_requerido: false,
-          }
-          setProfesionalSession(updatedSession)
-          localStorage.setItem('profesional_session', JSON.stringify(updatedSession))
+          guardarSesion({ ...profesionalSession, cambio_password_requerido: false })
         }
 
         return true
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Error al cambiar contraseña'
-        setError(msg)
+        manejarError(msg)
         console.error('Error cambiando contraseña:', err)
         return false
       } finally {
         setIsLoading(false)
       }
     },
-    [profesionalSession, toast]
+    [guardarSesion, manejarError, profesionalSession, toast]
   )
 
-  /**
-   * Cerrar sesión de profesional
-   */
+  // ── logoutProfesional ────────────────────────────────────────────────────
+
+  /** Cierra la sesión del profesional. */
   const logoutProfesional = useCallback(() => {
-    setProfesionalSession(null)
-    localStorage.removeItem('profesional_session')
+    eliminarSesion()
     setError(null)
-    toast({
-      title: 'Sesión cerrada',
-      description: 'Ha cerrado sesión correctamente',
-    })
-  }, [toast])
+    toast({ title: 'Sesión cerrada', description: 'Ha cerrado sesión correctamente' })
+  }, [eliminarSesion, toast])
+
+  // ── API pública ──────────────────────────────────────────────────────────
 
   return {
     // Estado

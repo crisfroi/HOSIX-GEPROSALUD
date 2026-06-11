@@ -46,16 +46,19 @@ export const ListaEsperaMedicos: React.FC = () => {
       }
 
       // Obtener ordenes médicas pendientes del médico actual
-      const { data: medico } = await supabase
-        .from('profesionales_sanitarios')
-        .select('id')
-        .eq('user_id', user.id)
+      // Buscar profesional_id a través de hosix_usuarios
+      const { data: usuarioData, error: usuarioError } = await supabase
+        .from('hosix_usuarios')
+        .select('profesional_id')
+        .eq('auth_user_id', user.id)
         .single()
 
-      if (!medico) {
-        setError('No se encontró registro de médico')
+      if (usuarioError || !usuarioData?.profesional_id) {
+        setError('No se encontró registro de médico para este usuario')
         return
       }
+
+      const medicoId = usuarioData.profesional_id
 
       const { data: ordenes, error: errorOrdenes } = await supabase
         .from('hosix_ordenes_medicas')
@@ -67,7 +70,7 @@ export const ListaEsperaMedicos: React.FC = () => {
           fecha_creacion,
           pacientes:paciente_id(ppi, primer_nombre, primer_apellido, fecha_nacimiento)
         `)
-        .eq('medico_asignado_id', medico.id)
+        .eq('medico_asignado_id', medicoId)
         .eq('estado', 'pendiente')
         .order('prioridad', { ascending: false })
         .order('fecha_creacion', { ascending: true })

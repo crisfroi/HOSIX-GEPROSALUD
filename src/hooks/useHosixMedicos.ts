@@ -110,31 +110,22 @@ export const useHosixMedicos = () => {
             return []
           }
 
-          const { data: medico, error: medicoError } = await supabase
-            .from('profesionales_sanitarios')
-            .select('id')
-            .eq('user_id', user.id)
+          // Get medico_id from hosix_usuarios (professionals are linked there)
+          const { data: usuarioData, error: usuarioError } = await supabase
+            .from('hosix_usuarios')
+            .select('id, profesional_id')
+            .eq('auth_user_id', user.id)
             .single()
 
-          if (medicoError) {
-            console.error('Error fetching professional record:', {
-              code: medicoError.code,
-              message: medicoError.message,
-              details: medicoError.details,
-              hint: medicoError.hint
-            })
-            return []
-          }
-
-          if (!medico) {
-            console.warn('No professional record found for user:', user.id)
+          if (usuarioError || !usuarioData?.profesional_id) {
+            console.warn('No professional link found for user:', user.id)
             return []
           }
 
           let query = supabase
             .from('hosix_ordenes_medicas')
             .select('*')
-            .eq('medico_asignado_id', medico.id)
+            .eq('medico_asignado_id', usuarioData.profesional_id)
             .order('fecha_creacion', { ascending: false })
 
           if (estado) {
@@ -324,18 +315,21 @@ export const useHosixMedicos = () => {
       observaciones?: string
     }) => {
       // Obtener ID del médico actual
-      const { data: medico } = await supabase
-        .from('profesionales_sanitarios')
-        .select('id')
-        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user?.id) throw new Error('Usuario no autenticado')
+
+      const { data: usuario } = await supabase
+        .from('hosix_usuarios')
+        .select('profesional_id')
+        .eq('auth_user_id', user.id)
         .single()
 
-      if (!medico) throw new Error('Médico no encontrado')
+      if (!usuario?.profesional_id) throw new Error('Médico no encontrado')
 
       const { data, error } = await supabase.rpc('registrar_diagnostico_paciente', {
         p_paciente_id: pacienteId,
         p_diagnostico_id: diagnosticoId,
-        p_medico_id: medico.id,
+        p_medico_id: usuario.profesional_id,
         p_tipo_diagnostico: tipodiagnostico,
         p_severidad: severidad,
         p_observaciones: observaciones,

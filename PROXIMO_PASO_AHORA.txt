@@ -1,0 +1,106 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                                                                                  ║
+║                         👉 QUÉ HACER AHORA (6 JUN)                              ║
+║                                                                                  ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+
+🔥 ACCIÓN INMEDIATA (5 MINUTOS)
+═════════════════════════════════════════════════════════════════════════════════
+
+PASO 1: Arrancar Docker ICD
+  Terminal → Copia esto:
+  
+  docker-compose up -d
+  
+  O si no tienes docker-compose:
+  
+  docker start icd11-server
+
+PASO 2: Verificar que Docker está corriendo
+  Abre en navegador: http://localhost:8090/swagger/index.html
+  
+  ✅ Si ves "Swagger UI" → Docker OK
+  ❌ Si ves "Connection refused" → No está corriendo aún
+
+
+⏩ VERIFICACIÓN RÁPIDA (10 MINUTOS)
+═════════════════════════════════════════════════════════════════════════════════
+
+PASO 3: Ir a http://localhost:8080 (tu app)
+  
+  1. Abre Configuración
+  2. Debería ver 7 tabs:
+     General | Usuarios | Profesionales | Permisos | Maestros | Plantillas | Seguridad
+  
+  3. Click en "Maestros"
+     Debería ver ~12 subtabs abajo
+  
+  4. Click en "Plantillas"
+     Debería ver ~24 plantillas listadas
+     
+✅ Si ves todo esto → Fases 1 y 3 OK
+
+
+🧪 VALIDACIÓN PROFUNDA (5 MINUTOS)
+═════════════════════════════════════════════════════════════════════════════════
+
+PASO 4: Ejecutar test completo en DevTools (F12)
+  
+  1. Abre DevTools (F12)
+  2. Copia TODO esto:
+  
+  ──────────────────────────────────────────────────────────────────────────────
+  [Todo el contenido de testing-scripts/complete-diagnostic.js]
+  ──────────────────────────────────────────────────────────────────────────────
+  
+  3. Pégalo en Console
+  4. Press ENTER
+  5. Debería ver reporte con ✅ en todas las fases
+
+
+📊 DESPUÉS DE VALIDAR
+═════════════════════════════════════════════════════════════════════════════════
+
+Si todo está ✅:
+  → Próximo paso: Fase 4 (Catálogos Farmacéuticos)
+  
+Si algo está ❌:
+  → Lee INFORME_FINAL_CORRECCIONES_6JUN.txt (sección "SI PERSISTEN PROBLEMAS")
+  → O ejecuta el script especifico para ese problema
+
+
+📚 DOCUMENTACIÓN COMPLETA
+═════════════════════════════════════════════════════════════════════════════════
+
+Para entender qué pasó y qué se corrigió:
+  → RESUMEN_CAMBIOS_SESION_6JUN.md (Technical)
+  → INFORME_FINAL_CORRECCIONES_6JUN.txt (Detallado)
+  → ACCIONES_INMEDIATAS_CORRECCIONES.md (Paso a paso)
+
+
+❓ AYUDA RÁPIDA
+═════════════════════════════════════════════════════════════════════════════════
+
+"¿Docker no inicia?"
+  → docker logs icd11-server     (Ver por qué)
+  → docker ps -a                 (Ver contenedores)
+  → bash testing-scripts/check-icd-docker.sh (Diagnóstico)
+
+"¿Maestros no aparece?"
+  → Ctrl+F5 para recargar
+  → Abre DevTools → Network → busca errores rojo
+
+"¿Plantillas están en 0?"
+  → Network tab → busca "plantillas_documentos"
+  → Debería ser: configuracion.plantillas_documentos (SIN 404)
+
+"¿ECT no carga en CIE-11?"
+  → Verifica Docker: http://localhost:8090/swagger/index.html
+  → Si Docker OK pero ECT no aparece → problema de CSS/JS
+
+═════════════════════════════════════════════════════════════════════════════════
+
+⏱️  TIEMPO TOTAL ESTIMADO: 20-30 MINUTOS
+
+═════════════════════════════════════════════════════════════════════════════════

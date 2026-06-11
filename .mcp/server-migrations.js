@@ -18,7 +18,7 @@ const server = new Server({
 let supabase = null;
 
 function initSupabase() {
-  const url = process.env.SUPABASE_URL || "https://wdieynendfjbkbhfovrx.supabase.co";
+  const url = process.env.SUPABASE_URL || "https://abxusmjvsuabvbbwwxqg.supabase.co";
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!key) {

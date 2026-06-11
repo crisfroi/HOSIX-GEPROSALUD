@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useHosixCompras } from '@/hooks/useHosixCompras';
@@ -11,11 +10,16 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, L
 import { DollarSign, FileText, TrendingUp, CheckCircle } from 'lucide-react';
 
 export default function ComprasPage() {
-  const { usePresupuestosQuery, useLicitacionesQuery, useOfertasQuery, useAdjudicacionesQuery } = useHosixCompras();
-  const { data: presupuestos = [] } = usePresupuestosQuery();
-  const { data: licitaciones = [] } = useLicitacionesQuery();
-  const { data: ofertas = [] } = useOfertasQuery();
-  const { data: adjudicaciones = [] } = useAdjudicacionesQuery();
+  const {
+    presupuestos = [],
+    licitaciones = [],
+    ofertas = [],
+    adjudicaciones = [],
+    crearPresupuesto,
+    crearLicitacion,
+    crearOferta,
+    crearAdjudicacion
+  } = useHosixCompras();
   const [selectedTab, setSelectedTab] = useState('dashboard');
 
   // KPIs

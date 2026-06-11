@@ -6,10 +6,10 @@ export const useHosixObstetricia = () => {
   const queryClient = useQueryClient()
 
   const gestacionesQuery = useQuery({
-    queryKey: ['hosix_obstetricia_gestaciones'],
+    queryKey: ['obstetricia_gestaciones'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('hosix_obstetricia_gestaciones')
+        .from('obstetricia.gestaciones')
         .select('*')
         .order('created_at', { ascending: false })
       if (error) throw error
@@ -18,10 +18,10 @@ export const useHosixObstetricia = () => {
   })
 
   const controlesQuery = useQuery({
-    queryKey: ['hosix_obstetricia_controles'],
+    queryKey: ['obstetricia_controles'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('hosix_obstetricia_controles')
+        .from('obstetricia.controles_prenatales')
         .select('*')
         .order('fecha_control', { ascending: false })
       if (error) throw error
@@ -30,12 +30,12 @@ export const useHosixObstetricia = () => {
   })
 
   const partosQuery = useQuery({
-    queryKey: ['hosix_obstetricia_partos'],
+    queryKey: ['obstetricia_partos'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('hosix_obstetricia_partos')
+        .from('obstetricia.partos')
         .select('*')
-        .order('fecha_hora_inicio', { ascending: false })
+        .order('fecha_inicio_parto', { ascending: false })
       if (error) throw error
       return data || []
     }
@@ -44,14 +44,14 @@ export const useHosixObstetricia = () => {
   const crearGestacionMutation = useMutation({
     mutationFn: async (gestacion: any) => {
       const { data, error } = await supabase
-        .from('hosix_obstetricia_gestaciones')
+        .from('obstetricia.gestaciones')
         .insert([gestacion])
         .select()
       if (error) throw error
       return data[0]
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hosix_obstetricia_gestaciones'] })
+      queryClient.invalidateQueries({ queryKey: ['obstetricia_gestaciones'] })
       toast.success('Gestación registrada')
     },
     onError: (error: any) => toast.error(`Error: ${error.message}`)
@@ -60,14 +60,14 @@ export const useHosixObstetricia = () => {
   const crearControlMutation = useMutation({
     mutationFn: async (control: any) => {
       const { data, error } = await supabase
-        .from('hosix_obstetricia_controles')
+        .from('obstetricia.controles_prenatales')
         .insert([control])
         .select()
       if (error) throw error
       return data[0]
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hosix_obstetricia_controles'] })
+      queryClient.invalidateQueries({ queryKey: ['obstetricia_controles'] })
       toast.success('Control prenatal registrado')
     },
     onError: (error: any) => toast.error(`Error: ${error.message}`)
@@ -76,15 +76,15 @@ export const useHosixObstetricia = () => {
   const registrarPartoMutation = useMutation({
     mutationFn: async (parto: any) => {
       const { data, error } = await supabase
-        .from('hosix_obstetricia_partos')
+        .from('obstetricia.partos')
         .insert([parto])
         .select()
       if (error) throw error
       return data[0]
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hosix_obstetricia_partos'] })
-      queryClient.invalidateQueries({ queryKey: ['hosix_obstetricia_gestaciones'] })
+      queryClient.invalidateQueries({ queryKey: ['obstetricia_partos'] })
+      queryClient.invalidateQueries({ queryKey: ['obstetricia_gestaciones'] })
       toast.success('Parto registrado')
     },
     onError: (error: any) => toast.error(`Error: ${error.message}`)

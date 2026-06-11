@@ -231,7 +231,7 @@ export default function CPOEPrescripcionForm({
       const { data: { user } } = await supabase.auth.getUser()
 
       const { data, error } = await supabase
-        .from('hosix_cpoe_prescripciones')
+        .from('hosix_prescripciones')
         .insert([
           {
             paciente_id: pacienteId,

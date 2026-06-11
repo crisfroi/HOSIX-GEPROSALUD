@@ -126,7 +126,7 @@ export function useHosixQuirofanos() {
             *,
             sala:hosix_quirofanos_salas(nombre, bloque_id),
             paciente:hosix_pacientes(nombre_completo, numero_documento),
-            cirujano:profesionales_sanitarios!cirujano_principal_id(nombre_completo)
+            cirujano:profesionales_sanitarios!cirujano_principal_id(nombre, apellido)
           `)
           .neq('estado', 'cancelada');
         

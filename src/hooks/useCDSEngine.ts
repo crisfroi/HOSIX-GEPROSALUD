@@ -181,7 +181,7 @@ export const useCDSEngine = () => {
   const obtenerMedicamentosActuales = async (pacienteId: string) => {
     try {
       const { data, error } = await supabase
-        .from('hosix_cpoe_prescripciones')
+        .from('hosix_prescripciones')
         .select('nombre_medicamento')
         .eq('paciente_id', pacienteId)
         .eq('estado', 'activa')

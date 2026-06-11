@@ -3,6 +3,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { Toaster } from '@/components/ui/toaster'
+import { ToastProvider } from '@/hooks/use-toast'
 import { queryClient } from '@/lib/queryClient'
 
 import HosixLogin from '@/pages/Hosix/HosixLogin'
@@ -40,8 +41,9 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <BrowserRouter>
+        <ToastProvider>
+          <Toaster />
+          <BrowserRouter>
           <Routes>
             <Route path="/" element={<Navigate to="/hosix/login" replace />} />
             <Route path="/hosix/login" element={<HosixLogin />} />
@@ -75,7 +77,8 @@ function App() {
               <Route path="bi" element={<BI />} />
             </Route>
           </Routes>
-        </BrowserRouter>
+          </BrowserRouter>
+        </ToastProvider>
       </TooltipProvider>
     </QueryClientProvider>
   )

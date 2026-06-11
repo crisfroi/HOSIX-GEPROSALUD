@@ -208,6 +208,9 @@ export const useHosixCompras = () => {
 
       if (error) throw error;
       return data as Oferta[];
+
+      if (error) throw error;
+      return data as Oferta[];
     },
   });
 
@@ -284,6 +287,9 @@ export const useHosixCompras = () => {
         .from('hosix_adjudicaciones')
         .select('*')
         .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as Adjudicacion[];
 
       if (error) throw error;
       return data as Adjudicacion[];

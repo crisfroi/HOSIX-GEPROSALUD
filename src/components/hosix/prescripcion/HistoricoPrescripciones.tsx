@@ -25,7 +25,7 @@ export default function HistoricoPrescripciones({
       setCargando(true)
       try {
         const query = supabase
-          .from('hosix_cpoe_prescripciones')
+          .from('hosix_prescripciones')
           .select(`
             id,
             nombre_medicamento,
@@ -40,8 +40,7 @@ export default function HistoricoPrescripciones({
             observaciones_medicas,
             tiene_alerta_alergia,
             tiene_alerta_interaccion,
-            tiene_alerta_dosis,
-            medico:profesionales_sanitarios(id, nombre_completo)
+            tiene_alerta_dosis
           `)
           .eq('paciente_id', pacienteId)
           .order('fecha_inicio', { ascending: false })

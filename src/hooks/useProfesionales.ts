@@ -3,14 +3,11 @@ import { supabase } from '@/integrations/supabase/hosixClient'
 
 export interface Profesional {
   id: string
-  nombre_completo?: string
-  primer_nombre?: string
-  segundo_nombre?: string | null
-  primer_apellido?: string
-  segundo_apellido?: string | null
+  nombre?: string
+  apellido?: string
   area_profesional?: string | null
   especialidad?: string | null
-  servicio_id?: string | null
+  centro_salud_id?: string | null
   activo: boolean
 }
 
@@ -21,10 +18,10 @@ export const useProfesionales = () => {
       const { data, error } = await supabase
         .from('profesionales_sanitarios')
         .select(
-          `id,nombre_completo,primer_nombre,segundo_nombre,primer_apellido,segundo_apellido,area_profesional,especialidad,servicio_id,activo`
+          `id,nombre,apellido,area_profesional,especialidad,centro_salud_id,activo`
         )
         .eq('activo', true)
-        .order('primer_apellido', { ascending: true })
+        .order('apellido', { ascending: true })
 
       if (error) {
         throw error

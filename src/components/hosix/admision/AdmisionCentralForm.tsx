@@ -322,13 +322,12 @@ export default function AdmisionCentralForm({
       // ASIGNAR MÉDICO EN TURNO SI ES CONSULTA EXTERNA
       if (formData.tipoIngreso === 'externa') {
         try {
-          // Obtener médicos en turno del servicio
+          // Obtener médicos activos del servicio (nota: esta_en_turno no existe en tabla)
           const { data: medicosEnTurno, error: errorMedicos } = await supabase
             .from('profesionales_sanitarios')
-            .select('id, primer_nombre, primer_apellido')
-            .eq('servicio_id', formData.servicioId)
+            .select('id, nombre, apellido')
+            .eq('centro_salud_id', formData.servicioId)
             .eq('activo', true)
-            .eq('esta_en_turno', true)
             .limit(1)
 
           if (medicosEnTurno && medicosEnTurno.length > 0) {
@@ -350,10 +349,10 @@ export default function AdmisionCentralForm({
               ])
 
             if (!errorOrden) {
-              console.log(`✅ Médico asignado: ${medico.primer_nombre} ${medico.primer_apellido}`)
+              console.log(`✅ Médico asignado: ${medico.nombre} ${medico.apellido}`)
             }
           } else {
-            console.warn('⚠️ No hay médicos en turno disponibles para este servicio')
+            console.warn('⚠️ No hay médicos disponibles para este servicio')
           }
         } catch (errorAssignment) {
           console.warn('⚠️ Error al asignar médico (continuando con admisión):', errorAssignment)

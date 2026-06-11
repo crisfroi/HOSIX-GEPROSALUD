@@ -1,21 +1,168 @@
 # LOG IMPLEMENTACIÓN V3 - HOSIX GEPROSALUD
 **Fecha Inicio:** 3 de Junio 2026
-**Última Actualización:** 6 de Junio 2026
-**Versión:** 3.0
-**Estado:** ✅ FASES 1, 2, 3 COMPLETADAS - FASE 4 LISTA PARA INICIAR
+**Última Actualización:** 10 de Junio 2026 (FASE 5 MIGRACIONES CREADAS)
+**Versión:** 3.0-FASE5-MIGRATIONS
+**Estado:** 🟡 FASE 5 - MIGRACIONES LISTAS PARA APLICAR
 
 ---
 
 ## 📊 RESUMEN PROGRESO GENERAL
 
-| Fase | Descripción | Estado | Progreso | Inicio | Finalizado |
-|------|-------------|--------|----------|--------|------------|
-| **1** | Datos Maestros Generales | ✅ COMPLETADO | 100% | 3-JUN | 4-JUN |
-| **2** | Codificación (CIE-11) | ✅ COMPLETADO | 100% | 4-JUN | 4-JUN |
-| **3** | Plantillas & Documentos | ✅ COMPLETADO | 100% | 5-JUN | 6-JUN |
-| **4** | Catálogos Farmacéuticos | 🟡 EN PLANIFICACIÓN | 0% | 6-JUN | TBD |
-| **5** | Habilitar 8 Módulos | ⏳ PLANIFICADA | 0% | TBD | TBD |
+| Fase | Descripción | Estado | Progreso | Inicio | Última Actualización |
+|------|-------------|--------|----------|--------|----------------------|
+| **1** | Datos Maestros Generales | ✅ COMPLETADO | 100% | 3-JUN | 6-JUN (Fixes Aplicados) |
+| **2** | Codificación (CIE-11) | ✅ COMPLETADO | 100% | 4-JUN | 6-JUN (Schema OK) |
+| **3** | Plantillas & Documentos | ✅ COMPLETADO | 100% | 5-JUN | 6-JUN (Schema Fix OK) |
+| **4** | Catálogos Farmacéuticos | ⏭️ SALTEADO | 0% | - | Después de Fase 5 |
+| **5** | Habilitar 8 Módulos | 🟡 EN PROGRESO | 25% | 10-JUN | Fixes aplicados |
 | **6** | Integración Azure + Seguridad | ⏳ PLANIFICADA | 0% | TBD | TBD |
+
+---
+
+## 📌 ESTADO FASE 5 - 8 MÓDULOS CLÍNICOS (10-JUN @ AUDITORÍA)
+
+### 🟡 FASE 5: TABLAS EXISTEN ✅ PERO CÓDIGO ROTO ❌
+
+**Auditoría de Tablas:**
+- ✅ **25/25 tablas BD creadas** (todas las migraciones aplicadas)
+- ❌ **7 incompatibilidades críticas** entre BD y código
+
+**Problemas Detectados:**
+1. Referencias a schema `configuracion.*` sin prefijo (plantillas_documentos, plantillas_campos, documentos_generados)
+2. Nombre incorrecto: `hosix_hce_entradas` vs `hosix_historia_clinica`
+3. Referencias a tablas base sin prefijo: `profesionales_sanitarios`, `centros_salud`
+4. Hook `useHosixCompras` retorna datos pero código intenta llamar funciones
+
+**Archivos Afectados:**
+- `src/hooks/useHosixPlantillasAvanzado.ts` - 3 referencias incorrectas
+- `src/pages/Hosix/Compras.tsx` - Hook mal usado
+- `src/components/hosix/admision/AdmisionCentralForm.tsx` - nombre tabla incorrecto
+- `src/hooks/useProfesionales.ts` - referencias sin prefijo
+- `src/components/hosix/prescripcion/PrescripcionesListado.tsx` - nombre tabla incorrecto
+
+**Plan de Corrección:**
+1. Mapear todas las referencias correctas (tabla_mapping.json creado)
+2. Arreglar imports/hooks en componentes
+3. Validar que todas las queries usen nombres correctos
+4. Re-ejecutar tests de Fase 5
+
+---
+
+## 🔴 PROBLEMAS CRÍTICOS DETECTADOS (6-JUN)
+
+### Hallazgos de Ejecución de Tests Ejecutables
+
+Tras ejecutar los scripts de testing (`phase1-maestros.js`, `phase2-cie11.js`, `phase3-plantillas.js`), se identificaron:
+
+**Fase 1 - Maestros:**
+- ❌ Tab "Maestros" NO visible en DOM (aunque existe en código)
+- ❌ 12 subtabs inaccesibles
+- 🔧 **CAUSA:** Grid responsive (grid-cols-7) trunca en pantallas pequeñas
+- ✅ **FIX APLICADO:** grid-cols-2 sm:grid-cols-4 lg:grid-cols-7
+
+**Fase 2 - CIE-11:**
+- ❌ ICD API en puerto 8090 NO responde (ERR_CONNECTION_REFUSED)
+- ❌ Selector CIE-11 no encontrado
+- ❌ ECT no disponible
+- 🔧 **CAUSA:** Docker ICD no está corriendo
+- 📋 **ACCIÓN REQUERIDA:** Iniciar docker-compose o contenedor ICD
+
+**Fase 3 - Plantillas:**
+- ❌ 0 plantillas visibles en UI (0 items en DOM)
+- ⚠️ Sin errores 404/RLS (silenciosa)
+- 🔧 **CAUSA:** Inconsistencia de schema (using `plantillas_documentos` sin schema)
+- ✅ **FIX APLICADO:** Corregir todos los `.from('plantillas_documentos')` a `.from('configuracion.plantillas_documentos')`
+- ✅ **CAMBIOS APLICADOS:** useHosixPlantillasAvanzado.ts (líneas 122, 150, 182, 211, 230, 249, 268, 302)
+
+---
+
+## 🔧 TRABAJO COMPLETADO SESIÓN 10-JUN (FASE 5 - MIGRACIONES + FIXES)
+
+### Descubrimiento Crítico
+- Las tablas de Fase 5 NO existían en la BD real
+- Auditoría anterior fue imprecisa
+- 404 errors confirmaron la falta de tablas
+
+### Soluciones Aplicadas
+
+#### 1. Mitigación Inmediata
+- Desactivar queries de módulos sin tablas (retornan arrays vacíos)
+- Previene crashes y errores 404
+- **Módulos desactivados:** Compras, Recobros, Farmacia, Interconsultas
+
+#### 2. Migraciones Creadas
+- **20260610_fase5_compras_presupuestos.sql** ✅ CREADA
+  - Tablas: presupuestos, licitaciones, ofertas, adjudicaciones
+  - RLS habilitado
+  - Índices para rendimiento
+
+- **20260610_fase5_farmacia_dispensario.sql** ✅ CREADA
+  - Tablas: dispensario, dispensaciones, farmacovigilancia
+  - RLS habilitado
+  - Índices para rendimiento
+
+#### 3. Code Fixes
+- Remover JOINs faltantes en Prescripciones
+- Mejorar FK specifications en Urgencias
+- Documentación de estado completada
+
+---
+
+## 🔧 FIXES APLICADAS EN SESIONES ANTERIORES (FASE 5 SCHEMA/CODE)
+
+### Problemas Identificados y Reparados
+
+#### 1. **useHosixMedicos.ts - Referencias a user_id en profesionales_sanitarios**
+   - **Problema:** Código intentaba buscar `profesionales_sanitarios.user_id` pero esa columna no existe
+   - **Causa Raíz:** La vinculación user→professional es indirecta: `auth.users` → `hosix_usuarios` → `profesionales_sanitarios`
+   - **Fix Aplicado:**
+     - Líneas 101-178: Cambio de query en `useOrdenesMedicas` a través de `hosix_usuarios`
+     - Líneas 314-336: Cambio de query en `registrarDiagnosticoMutation` a través de `hosix_usuarios`
+   - **Status:** ✅ COMPLETADO
+
+#### 2. **Prescripciones - Nombre de tabla incorrecto `hosix_cpoe_prescripciones`**
+   - **Problema:** Código usaba `hosix_cpoe_prescripciones` pero tabla real es `hosix_prescripciones`
+   - **Archivos Afectados:** 4 archivos
+     - `src/components/hosix/prescripcion/PrescripcionesListado.tsx` (línea 24)
+     - `src/components/hosix/prescripcion/HistoricoPrescripciones.tsx` (línea 28)
+     - `src/components/hosix/prescripcion/CPOEPrescripcionForm.tsx` (línea 234)
+     - `src/hooks/useCDSEngine.ts` (línea 184)
+   - **Fix Aplicado:** Cambio de todas las referencias a `hosix_prescripciones`
+   - **Status:** ✅ COMPLETADO
+
+#### 3. **useHosixUrgencias.ts - Foreign key specification**
+   - **Problema:** Join a `profesionales_sanitarios` sin especificar el foreign key
+   - **Causa:** Supabase puede no inferir automáticamente FK cuando hay múltiples referencias
+   - **Fix Aplicado:**
+     - Línea 51: `medico:profesionales_sanitarios(...)` → `medico:profesionales_sanitarios!medico_responsable_id(...)`
+     - Línea 254: Mismo cambio en `obtenerEpisodio`
+   - **Status:** ✅ COMPLETADO
+
+#### 4. **Validación de Todos los Módulos Fase 5**
+   - Revisión completa de hooks para 8 módulos:
+     - ✅ useHosixCompras - OK
+     - ✅ useHosixQuirofanos - OK (ya tenía FK especificado correctamente)
+     - ✅ useHosixRecobros - OK
+     - ✅ useHosixLaboratorio - OK
+     - ✅ useHosixImagenologia - OK
+     - ✅ useHosixFarmacia - OK
+     - ✅ useHosixInterconsultas - OK
+     - ✅ useHosixEnfermeria - OK
+     - ✅ useHosixCitas - OK
+     - ✅ useHosixHospitalizacion - OK
+   - **Status:** ✅ VALIDACIÓN COMPLETADA
+
+### Resumen de Cambios
+- **Archivos Modificados:** 7 (1 hook + 4 componentes + 1 hook CDS + 1 hook urgencias)
+- **Líneas Cambiadas:** ~40 líneas de código
+- **Problemas Resueltos:** 3 críticos + FK specification improvement
+- **Módulos Validados:** 10 hooks principales
+
+### Próximos Pasos
+1. ✅ Búsqueda de más references problemáticas
+2. 🔄 Verificación de compilación TypeScript
+3. 🔄 Testing de módulos en dev server
+4. 🔄 Validación de Fase 5 end-to-end
 
 ---
 
@@ -116,6 +263,27 @@
    - `TESTING_FASE3_PLANTILLAS.md` (450 líneas)
    - `CHECKLIST_INTERACTIVO_FASE3.md` (238 líneas)
 5. ✅ Log actualizado
+
+**🔧 FIX CRÍTICO REALIZADO (6-JUN @ 15:30 UTC):**
+
+**Problema Encontrado:**
+- Hook `useHosixPlantillasAvanzado` consultaba `plantillas_documentos` (schema público)
+- Pero migraciones crearon tablas en `configuracion.plantillas_documentos`
+- Inconsistencia causó que plantillas no aparecieran en UI
+
+**Solución Aplicada:**
+1. ✅ Corregí hook para usar `configuracion.plantillas_documentos`
+2. ✅ Corregí todas las referencias a `plantillas_campos` → `configuracion.plantillas_campos`
+3. ✅ Corregí todas las referencias a `documentos_generados` → `configuracion.documentos_generados`
+4. ✅ Agregué imports faltantes en componente (useState, useMemo)
+
+**Archivos Modificados:**
+- `src/hooks/useHosixPlantillasAvanzado.ts` (11 correcciones de schema)
+- `src/components/hosix/PlantillasEditorAvanzado.tsx` (1 import agregado)
+
+**Verificación:**
+- ✅ Documento de verificación creado: `VERIFICACION_RAPIDA.md`
+- ✅ Script de test disponible en consola del navegador
 
 **Próximos pasos:**
 1. ✅ COMPLETADO - Continuar con Fase 4

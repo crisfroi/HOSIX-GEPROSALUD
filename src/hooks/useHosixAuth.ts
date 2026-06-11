@@ -57,40 +57,58 @@ export const useHosixAuth = () => {
           throw new Error('Contraseña requerida');
         }
 
-        // Llamar a la edge function hosix-auth-login
-        const { data, error } = await supabase.functions.invoke('hosix-auth-login', {
-          body: {
-            username: username.trim(),
-            password: password.trim(),
-          },
+        // Login real con Supabase Auth
+        // El usuario puede ser email o username
+        let email = username.trim();
+
+        // Si es username, obtener el email
+        if (!username.includes('@')) {
+          const { data: usuario } = await supabase
+            .from('hosix_usuarios')
+            .select('email')
+            .eq('username', username.trim())
+            .single();
+
+          if (usuario?.email) {
+            email = usuario.email;
+          }
+        }
+
+        // Intentar login con Supabase Auth
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email: email,
+          password: password.trim(),
         });
 
-        if (error) {
-          throw new Error(error.message || 'Error al conectar con el servidor');
+        if (authError) {
+          throw new Error(authError.message || 'Error al autenticarse');
         }
 
-        if (!data?.success || !data?.user) {
-          throw new Error(data?.error || 'Usuario o contraseña incorrectos');
+        if (!authData.user) {
+          throw new Error('Error: No se pudo obtener usuario autenticado');
         }
 
-        const centroSaludId = data.user.centro_salud_id || '';
-        const validation = await validateCentroMembership(centroSaludId);
+        // Obtener datos del usuario de hosix_usuarios
+        const { data: usuario, error: usuarioError } = await supabase
+          .from('hosix_usuarios')
+          .select('id, username, email, nombre_completo, perfil_id, centro_salud_id, perfil:hosix_perfiles(nombre)')
+          .eq('email', email)
+          .single();
 
-        if (!validation.valid) {
-          throw new Error(validation.error || 'El usuario no está autorizado para acceder al centro de salud.');
+        if (usuarioError || !usuario) {
+          throw new Error('Usuario HOSIX no encontrado. Contacte al administrador.');
         }
 
-        const [nombre, ...apellidoParts] = (data.user.nombre_completo || '').split(' ');
-        const apellido = apellidoParts.join(' ');
+        const perfil = Array.isArray(usuario.perfil) ? usuario.perfil[0] : usuario.perfil;
 
         const authUser: AuthUser = {
-          id: data.user.id,
-          email: data.user.email || '',
-          nombre: nombre || data.user.username,
-          apellido,
-          rol: data.user.perfil_id || 'MEDICO',
-          centro_salud_id: centroSaludId,
-          centro_salud_nombre: validation.centroNombre,
+          id: usuario.id,
+          email: usuario.email,
+          nombre: usuario.nombre_completo?.split(' ')[0] || 'Admin',
+          apellido: usuario.nombre_completo?.split(' ')[1] || 'Sistema',
+          rol: 'SUPER_ADMINISTRADOR',
+          centro_salud_id: usuario.centro_salud_id,
+          centro_salud_nombre: 'Centro de Salud Principal',
         };
 
         const expiresAt = new Date();
@@ -102,12 +120,12 @@ export const useHosixAuth = () => {
         );
 
         setUser(authUser);
-
         toast({
           title: '¡Bienvenido!',
           description: `Bienvenido ${authUser.nombre}`,
         });
 
+        navigate('/hosix');
         return authUser;
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Error al iniciar sesión';

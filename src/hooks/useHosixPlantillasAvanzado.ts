@@ -126,7 +126,7 @@ export function useHosixPlantillasAvanzado() {
         `)
         .eq('activo', true)
         .order('nombre');
-      
+
       if (error) throw error;
       return data as Plantilla[];
     },

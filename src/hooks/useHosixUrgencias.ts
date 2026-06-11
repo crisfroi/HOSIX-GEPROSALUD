@@ -48,7 +48,7 @@ export const useHosixUrgencias = () => {
         .select(`
           *,
           paciente:hosix_pacientes(id, ppi, primer_nombre, primer_apellido, fecha_nacimiento),
-          medico:profesionales_sanitarios(id, nombre_completo)
+          medico:profesionales_sanitarios!medico_responsable_id(id, nombre, apellido)
         `)
         .eq('estado', 'en_proceso')
         .order('fecha_entrada', { ascending: false });
@@ -251,7 +251,7 @@ export const useHosixUrgencias = () => {
         *,
         paciente:hosix_pacientes(*),
         triage:hosix_urgencias_triage(*),
-        medico:profesionales_sanitarios(id, nombre_completo)
+        medico:profesionales_sanitarios!medico_responsable_id(id, nombre, apellido)
       `)
       .eq('id', id)
       .single();

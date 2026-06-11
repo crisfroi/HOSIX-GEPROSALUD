@@ -21,7 +21,7 @@ export default function PrescripcionesListado({ onSelectPaciente }: Prescripcion
       setCargando(true)
       try {
         const { data, error } = await supabase
-          .from('hosix_cpoe_prescripciones')
+          .from('hosix_prescripciones')
           .select(`
             id,
             paciente_id,
@@ -35,8 +35,7 @@ export default function PrescripcionesListado({ onSelectPaciente }: Prescripcion
             tiene_alerta_alergia,
             tiene_alerta_interaccion,
             tiene_alerta_dosis,
-            paciente:hosix_pacientes(id, ppi, primer_nombre, primer_apellido),
-            medico:profesionales_sanitarios(id, nombre_completo)
+            paciente:hosix_pacientes(id, ppi, primer_nombre, primer_apellido)
           `)
           .eq('estado', 'activa')
           .order('fecha_inicio', { ascending: false })
@@ -95,7 +94,6 @@ export default function PrescripcionesListado({ onSelectPaciente }: Prescripcion
                   <TableHead>Dosis</TableHead>
                   <TableHead>Vía</TableHead>
                   <TableHead>Alertas</TableHead>
-                  <TableHead>Médico</TableHead>
                   <TableHead>Acción</TableHead>
                 </TableRow>
               </TableHeader>
@@ -134,7 +132,6 @@ export default function PrescripcionesListado({ onSelectPaciente }: Prescripcion
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm">{orden.medico?.nombre_completo}</TableCell>
                     <TableCell>
                       <Button
                         size="sm"

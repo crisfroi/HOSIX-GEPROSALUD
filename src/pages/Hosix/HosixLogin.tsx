@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Hospital, Lock, User } from 'lucide-react';
+import { Lock, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useHosixAuth } from '@/hooks/useHosixAuth';
 import { useProfesionalAuth } from '@/hooks/useProfesionalAuth';
+import { SermedLogo } from '@/components/SermedLogo';
 
 const HosixLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -68,23 +69,23 @@ const HosixLogin: React.FC = () => {
   const isDev = import.meta.env.DEV;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 to-blue-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-sermed-blue-dark to-sermed-blue flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <div className="bg-white rounded-lg p-3">
-              <Hospital className="w-8 h-8 text-blue-900" />
+            <div className="bg-white rounded-lg p-3 shadow-xl">
+              <SermedLogo size="lg" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-white">HOSIX</h1>
-          <p className="text-blue-100 mt-2">Sistema de Gestión Hospitalaria</p>
+          <h1 className="text-3xl font-bold text-white">SERMED LOGISTIC</h1>
+          <p className="text-white/80 mt-2">Sistema Integral de Gestión Sanitaria</p>
         </div>
 
         {/* Login Form */}
         <Card className="border-0 shadow-xl">
-          <CardHeader>
-            <CardTitle>Iniciar Sesión</CardTitle>
+          <CardHeader className="bg-gradient-to-r from-sermed-blue/5 to-sermed-green/5">
+            <CardTitle className="text-sermed-blue">Iniciar Sesión</CardTitle>
             <CardDescription>
               Administrador, Médico o Profesional Sanitario
             </CardDescription>
@@ -99,18 +100,18 @@ const HosixLogin: React.FC = () => {
 
               {/* Username */}
               <div className="space-y-2">
-                <label htmlFor="username" className="text-sm font-medium">
+                <label htmlFor="username" className="text-sm font-medium text-sermed-blue">
                   Usuario / ID Profesional
                 </label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-sermed-blue/40" />
                   <Input
                     id="username"
                     type="text"
                     placeholder="admin o MED-2025-001"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 border-sermed-blue/20 focus:border-sermed-blue focus:ring-sermed-blue"
                     disabled={isLoading}
                     autoComplete="username"
                   />
@@ -119,18 +120,18 @@ const HosixLogin: React.FC = () => {
 
               {/* Password */}
               <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium">
+                <label htmlFor="password" className="text-sm font-medium text-sermed-blue">
                   Contraseña
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-sermed-blue/40" />
                   <Input
                     id="password"
                     type="password"
                     placeholder="Ingrese su contraseña"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 border-sermed-blue/20 focus:border-sermed-blue focus:ring-sermed-blue"
                     disabled={isLoading}
                     autoComplete="current-password"
                   />
@@ -140,10 +141,10 @@ const HosixLogin: React.FC = () => {
               {/* Remember Me & Forgot Password */}
               <div className="flex items-center justify-between text-sm">
                 <label className="flex items-center cursor-pointer">
-                  <input type="checkbox" className="mr-2 rounded border-gray-300" />
-                  <span>Recuérdame</span>
+                  <input type="checkbox" className="mr-2 rounded border-sermed-blue/30" />
+                  <span className="text-gray-700">Recuérdame</span>
                 </label>
-                <a href="#" className="text-blue-600 hover:underline">
+                <a href="#" className="text-sermed-blue hover:text-sermed-green font-medium">
                   ¿Olvidó su contraseña?
                 </a>
               </div>
@@ -151,7 +152,7 @@ const HosixLogin: React.FC = () => {
               {/* Login Button */}
               <Button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700"
+                className="w-full bg-sermed-blue hover:bg-sermed-blue/90 text-white font-medium"
                 disabled={isLoading}
               >
                 {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
@@ -179,9 +180,9 @@ const HosixLogin: React.FC = () => {
         </Card>
 
         {/* Footer */}
-        <div className="mt-6 text-center text-blue-100 text-sm">
-          <p>Sistema de Gestión Hospitalaria - GEPROSTEC</p>
-          <p className="text-xs mt-2 opacity-75">© 2025 Todos los derechos reservados</p>
+        <div className="mt-6 text-center text-white/80 text-sm">
+          <p className="font-medium">Sistema de Gestión Sanitaria - SERMED LOGISTIC</p>
+          <p className="text-xs mt-2 opacity-70">© 2025 Todos los derechos reservados | Sermed Logistic S.A.</p>
         </div>
       </div>
     </div>

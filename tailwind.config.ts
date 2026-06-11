@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -63,9 +62,10 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				'guinea-teal': 'hsl(var(--guinea-teal))',
-				'guinea-light-teal': 'hsl(var(--guinea-light-teal))',
-				'guinea-dark-teal': 'hsl(var(--guinea-dark-teal))'
+				'sermed-blue': 'hsl(var(--sermed-blue))',
+				'sermed-blue-dark': 'hsl(var(--sermed-blue-dark))',
+				'sermed-green': 'hsl(var(--sermed-green))',
+				'sermed-green-light': 'hsl(var(--sermed-green-light))'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

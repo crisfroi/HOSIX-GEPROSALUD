@@ -1,0 +1,31 @@
+refactor: Adapt entire codebase to Sermed Logistic theme
+
+This commit implements a complete visual rebrand from HOSIX to SERMED LOGISTIC with updated color scheme and medical UI components:
+
+Design Changes:
+- Updated color palette to Sermed Logistic branding (Blue #0066CC, Green #00B050)
+- Redesigned sidebar with gradient background and new logo
+- Enhanced header with Sermed styling
+- Improved login page with new branding and logo
+
+Component Updates:
+- Created SermedLogo SVG component
+- Created MedicalCard component for KPI metrics
+- Created PatientStatusBadge component for status indicators
+- Enhanced dashboard with Tremor charts (LineChart, PieChart)
+- Added improved KPI cards with trend indicators
+- Added department distribution visualization
+
+Theme Configuration:
+- Created comprehensive theme.ts configuration file
+- Updated tailwind.config.ts with new color utilities
+- Updated index.css with Sermed brand colors and variables
+- Maintained dark mode support with Sermed colors
+
+Pages Updated:
+- HosixDashboard.tsx - New layout with charts and metrics
+- HosixLogin.tsx - Complete rebrand to Sermed
+- HosixSidebar.tsx - New styling with Sermed colors
+- HosixHeader.tsx - Updated styling
+
+All changes maintain full backward compatibility with existing functionality.

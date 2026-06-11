@@ -26,7 +26,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuthStore } from '@/stores/authStore';
-import TurnoActivationButton from './turnos/TurnoActivationButton'
+import TurnoActivationButton from './turnos/TurnoActivationButton';
+import { SermedLogo } from '@/components/SermedLogo';
 
 interface HosixSidebarProps {
   isOpen: boolean;
@@ -90,18 +91,20 @@ const HosixSidebar: React.FC<HosixSidebarProps> = ({ isOpen }) => {
     <aside
       className={`${
         isOpen ? 'w-64' : 'w-20'
-      } bg-gradient-to-b from-blue-900 to-blue-800 text-white transition-all duration-300 flex flex-col`}
+      } bg-gradient-to-b from-sermed-blue-dark to-sermed-blue text-white transition-all duration-300 flex flex-col`}
     >
       {/* Logo/Header */}
-      <div className="p-4 border-b border-blue-700">
-        <div className="flex items-center justify-center h-12 bg-blue-800 rounded-lg">
-          <Hospital className="w-6 h-6" />
-          {isOpen && <span className="ml-2 font-bold text-lg">HOSIX</span>}
+      <div className="p-4 border-b border-sermed-green/30">
+        <div className="flex items-center justify-center h-12 bg-white rounded-lg shadow-md">
+          <div className="flex items-center gap-2">
+            <SermedLogo size="sm" />
+            {isOpen && <span className="font-bold text-lg text-sermed-blue">SERMED</span>}
+          </div>
         </div>
         {isOpen && user && (
-          <div className="mt-2 text-xs text-blue-200">
+          <div className="mt-3 text-xs text-white/90">
             <p className="truncate font-semibold">{user.nombre}</p>
-            <p className="text-blue-300 text-xs">{user.rol}</p>
+            <p className="text-sermed-green text-xs font-medium">{user.rol}</p>
           </div>
         )}
       </div>
@@ -118,8 +121,8 @@ const HosixSidebar: React.FC<HosixSidebarProps> = ({ isOpen }) => {
                   variant={active ? 'default' : 'ghost'}
                   className={`w-full justify-start ${
                     active
-                      ? 'bg-blue-600 hover:bg-blue-600'
-                      : 'text-blue-100 hover:bg-blue-700'
+                      ? 'bg-sermed-green hover:bg-sermed-green'
+                      : 'text-white/80 hover:bg-white/10'
                   }`}
                   title={item.label}
                 >
@@ -132,14 +135,14 @@ const HosixSidebar: React.FC<HosixSidebarProps> = ({ isOpen }) => {
         </div>
       </nav>
 
-      <Separator className="bg-blue-700" />
+      <Separator className="bg-sermed-green/30" />
 
       {/* Configuration Section */}
       <div className="p-4">
         <Link to="/hosix/configuracion">
           <Button
             variant="ghost"
-            className="w-full justify-start text-blue-100 hover:bg-blue-700"
+            className="w-full justify-start text-white/80 hover:bg-white/10"
             title="Configuración"
           >
             <Settings className="w-5 h-5 flex-shrink-0" />
@@ -149,13 +152,13 @@ const HosixSidebar: React.FC<HosixSidebarProps> = ({ isOpen }) => {
       </div>
 
       {/* Logout */}
-      <div className="p-4 border-t border-blue-700">
+      <div className="p-4 border-t border-sermed-green/30">
         <div className="mb-3">
           <TurnoActivationButton />
         </div>
         <Button
           variant="ghost"
-          className="w-full justify-start text-red-300 hover:bg-red-900/30"
+          className="w-full justify-start text-red-200 hover:bg-red-500/20"
           title="Cerrar sesión"
           onClick={handleLogout}
         >

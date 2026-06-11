@@ -63,16 +63,16 @@ svg {
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 185 100% 36%; /* Teal color from Guinea Salud logo */
+    --primary: 218 91% 41%; /* Sermed Blue #0066CC */
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 128 68% 35%; /* Sermed Green #00B050 */
+    --secondary-foreground: 210 40% 98%;
 
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 185 100% 36%;
+    --accent: 128 68% 35%; /* Sermed Green */
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 84.2% 60.2%;
@@ -80,23 +80,24 @@ svg {
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 185 100% 36%;
+    --ring: 218 91% 41%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 185 100% 36%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 185 100% 36%;
+    --sidebar-background: 218 91% 25%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 128 68% 35%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 218 91% 35%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 218 91% 30%;
+    --sidebar-ring: 128 68% 35%;
 
-    /* Custom Guinea Salud colors */
-    --guinea-teal: 185 100% 36%;
-    --guinea-light-teal: 185 50% 85%;
-    --guinea-dark-teal: 185 100% 25%;
+    /* Sermed brand colors */
+    --sermed-blue: 218 91% 41%;
+    --sermed-blue-dark: 218 91% 25%;
+    --sermed-green: 128 68% 35%;
+    --sermed-green-light: 128 68% 65%;
   }
 
   .dark {
@@ -109,16 +110,16 @@ svg {
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 185 100% 45%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 218 91% 50%;
+    --primary-foreground: 218 91% 20%;
 
-    --secondary: 217.2 32.6% 17.5%;
+    --secondary: 128 68% 45%;
     --secondary-foreground: 210 40% 98%;
 
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 185 100% 45%;
+    --accent: 128 68% 45%;
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62.8% 30.6%;
@@ -126,15 +127,15 @@ svg {
 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 185 100% 45%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 185 100% 45%;
+    --ring: 218 91% 50%;
+    --sidebar-background: 218 91% 20%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 128 68% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 185 100% 45%;
+    --sidebar-accent: 218 91% 30%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 218 91% 25%;
+    --sidebar-ring: 128 68% 45%;
   }
 }
 
@@ -148,25 +149,37 @@ svg {
   }
 }
 
-/* Custom Guinea Salud utilities */
+/* Sermed brand utilities */
 @layer utilities {
-  .bg-guinea-teal {
-    background-color: hsl(var(--guinea-teal));
+  .bg-sermed-blue {
+    background-color: hsl(var(--sermed-blue));
   }
-  
-  .bg-guinea-light-teal {
-    background-color: hsl(var(--guinea-light-teal));
+
+  .bg-sermed-blue-dark {
+    background-color: hsl(var(--sermed-blue-dark));
   }
-  
-  .bg-guinea-dark-teal {
-    background-color: hsl(var(--guinea-dark-teal));
+
+  .bg-sermed-green {
+    background-color: hsl(var(--sermed-green));
   }
-  
-  .text-guinea-teal {
-    color: hsl(var(--guinea-teal));
+
+  .bg-sermed-green-light {
+    background-color: hsl(var(--sermed-green-light));
   }
-  
-  .border-guinea-teal {
-    border-color: hsl(var(--guinea-teal));
+
+  .text-sermed-blue {
+    color: hsl(var(--sermed-blue));
+  }
+
+  .text-sermed-green {
+    color: hsl(var(--sermed-green));
+  }
+
+  .border-sermed-blue {
+    border-color: hsl(var(--sermed-blue));
+  }
+
+  .border-sermed-green {
+    border-color: hsl(var(--sermed-green));
   }
 }

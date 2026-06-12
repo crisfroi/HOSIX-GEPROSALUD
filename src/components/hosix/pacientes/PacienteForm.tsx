@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useHosixPacientes, PacienteFormData } from '@/hooks/useHosixPacientes';
+import { useSyncService } from '@/services/syncService';
+import { useSupabase } from '@/hooks/useSupabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Cloud, CloudOff } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface PacienteFormProps {
@@ -17,6 +19,9 @@ interface PacienteFormProps {
 
 export default function PacienteForm({ paciente, onSuccess = () => {}, onCancel = () => {} }: PacienteFormProps) {
   const { crearPaciente, isCreatingPaciente, actualizarPaciente, isUpdatingPaciente, buscarDuplicados, crearConviviente, isCreatingConviviente, listarFamilias } = useHosixPacientes();
+  const { supabase } = useSupabase();
+  const syncService = useSyncService(supabase);
+
   const [formData, setFormData] = useState<PacienteFormData>({
     primer_nombre: '',
     primer_apellido: '',
@@ -28,6 +33,8 @@ export default function PacienteForm({ paciente, onSuccess = () => {}, onCancel 
   const [familias, setFamilias] = useState<any[]>([]);
   const [duplicados, setDuplicados] = useState<any[]>([]);
   const [checkedDuplicados, setCheckedDuplicados] = useState(false);
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [syncStatus, setSyncStatus] = useState<string>('');
   const isLoading = isCreatingPaciente || isUpdatingPaciente;
 
   useEffect(() => {
@@ -47,6 +54,19 @@ export default function PacienteForm({ paciente, onSuccess = () => {}, onCancel 
     };
     loadFamilias();
   }, [listarFamilias]);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const [convForm, setConvForm] = useState({ nombre: '', parentesco: '', telefono: '', email: '' });
 
@@ -118,15 +138,54 @@ export default function PacienteForm({ paciente, onSuccess = () => {}, onCancel 
         }
       );
     } else {
-      crearPaciente(formData, {
-        onSuccess: () => {
-          toast.success('Paciente creado correctamente');
+      // Crear paciente localmente (offline-first)
+      if (!formData.numero_documento) {
+        toast.error('Ingrese el número de documento');
+        return;
+      }
+
+      try {
+        setSyncStatus('Creando paciente...');
+
+        // Obtener el distrito del usuario (asumiendo que está disponible en el contexto)
+        const nombreDistrito = 'Bioko Norte'; // TODO: obtener del contexto/usuario
+
+        const resultado = await syncService.crearPacienteLocal({
+          cedula: formData.numero_documento,
+          nombre: formData.primer_nombre,
+          apellido: formData.primer_apellido,
+          fecha_nacimiento: formData.fecha_nacimiento,
+          nombre_distrito: nombreDistrito,
+          genero: formData.sexo,
+        });
+
+        if (resultado.exitoso) {
+          toast.success(`Paciente creado localmente. HCU: ${resultado.hcu}`);
+
+          if (isOnline) {
+            toast.info('Iniciando sincronización con Nodo Central...');
+            setSyncStatus('Sincronizando...');
+            const syncResult = await syncService.sincronizar();
+
+            if (syncResult.exitoso) {
+              toast.success(`Sincronizado correctamente. ${syncResult.sincronizados} cambios procesados`);
+              setSyncStatus('');
+            } else {
+              toast.warning(`Cambios pendientes de sincronizar: ${syncResult.error}`);
+              setSyncStatus('');
+            }
+          } else {
+            toast.warning('Sin conexión. Los cambios se sincronizarán cuando haya conexión');
+            setSyncStatus('');
+          }
+
           onSuccess();
-        },
-        onError: (error: any) => {
-          toast.error(`Error: ${error.message}`);
-        },
-      });
+        } else {
+          toast.error(`Error al crear paciente: ${resultado.error}`);
+        }
+      } catch (error: any) {
+        toast.error(`Error: ${error.message}`);
+      }
     }
   };
 
@@ -332,6 +391,23 @@ export default function PacienteForm({ paciente, onSuccess = () => {}, onCancel 
           </Button>
         </div>
       </div>
+
+      {/* Estado de conexión y sincronización */}
+      {syncStatus && (
+        <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-md border border-blue-200">
+          <Cloud className="h-4 w-4 text-blue-600 animate-pulse" />
+          <span className="text-sm text-blue-700">{syncStatus}</span>
+        </div>
+      )}
+
+      {!isOnline && (
+        <Alert className="border-yellow-200 bg-yellow-50">
+          <CloudOff className="h-4 w-4 text-yellow-600" />
+          <AlertDescription className="text-yellow-700">
+            Sin conexión a internet. Los pacientes se crearán localmente y se sincronizarán cuando haya conexión.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Acciones */}
       <div className="flex justify-end gap-2 pt-4 border-t">

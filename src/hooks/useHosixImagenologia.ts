@@ -111,8 +111,8 @@ export const useHosixImagenologia = () => {
     estudiosLoading: estudiosQuery.isLoading,
     reportes: reportesQuery.data || [],
     reportesLoading: reportesQuery.isLoading,
-    crearSolicitud: crearSolicitudMutation.mutate,
-    registrarEstudio: registrarEstudioMutation.mutate,
-    crearReporte: crearReporteMutation.mutate
+    crearSolicitud: crearSolicitudMutation,
+    registrarEstudio: registrarEstudioMutation,
+    crearReporte: crearReporteMutation
   }
 }

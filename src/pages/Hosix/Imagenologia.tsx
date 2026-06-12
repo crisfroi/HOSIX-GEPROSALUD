@@ -2,7 +2,9 @@ import React, { useState } from 'react'
 import { useHosixImagenologia } from '@/hooks/useHosixImagenologia'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ImagenologiaSolicitudesManager } from '@/components/hosix/imagenologia/SolicitudesManager'
+import { SolicitudesManager } from '@/components/hosix/imagenologia/SolicitudesManager'
+import { EstudiosViewer } from '@/components/hosix/imagenologia/EstudiosViewer'
+import { ReportesViewer } from '@/components/hosix/imagenologia/ReportesViewer'
 
 export default function ImagenologiaPage() {
   const { modalidades = [], solicitudes = [], estudios = [], reportes = [] } = useHosixImagenologia()
@@ -30,7 +32,7 @@ export default function ImagenologiaPage() {
             <CardTitle className="text-sm font-medium">Solicitudes Pendientes</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{solicitudes.filter(s => s.estado_solicitud === 'pendiente').length}</div>
+            <div className="text-2xl font-bold">{solicitudes.filter(s => s.estado === 'pendiente').length}</div>
           </CardContent>
         </Card>
 
@@ -48,7 +50,7 @@ export default function ImagenologiaPage() {
             <CardTitle className="text-sm font-medium">Reportes Firmados</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{reportes.filter(r => r.firmado).length}</div>
+            <div className="text-2xl font-bold">{reportes.filter(r => r.fecha_firma).length}</div>
           </CardContent>
         </Card>
       </div>
@@ -61,29 +63,15 @@ export default function ImagenologiaPage() {
         </TabsList>
 
         <TabsContent value="solicitudes">
-          <ImagenologiaSolicitudesManager />
+          <SolicitudesManager />
         </TabsContent>
 
         <TabsContent value="estudios">
-          <Card>
-            <CardHeader>
-              <CardTitle>Estudios Realizados</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">Módulo de estudios realizados en desarrollo</p>
-            </CardContent>
-          </Card>
+          <EstudiosViewer />
         </TabsContent>
 
         <TabsContent value="reportes">
-          <Card>
-            <CardHeader>
-              <CardTitle>Reportes Radiológicos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">Módulo de reportes radiológicos en desarrollo</p>
-            </CardContent>
-          </Card>
+          <ReportesViewer />
         </TabsContent>
       </Tabs>
     </div>

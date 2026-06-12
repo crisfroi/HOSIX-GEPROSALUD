@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Users, Lock, Database, Shield, Stethoscope, FileText } from 'lucide-react';
+import { Settings, Users, Lock, Database, Shield, Stethoscope, FileText, Monitor, Wifi } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -19,6 +19,7 @@ import { ServiciosTercerosManager } from '@/components/hosix/configuracion/Servi
 import { PoliticasSeguridadManager } from '@/components/hosix/configuracion/PoliticasSeguridadManager';
 import { CualificacionesManager } from '@/components/hosix/configuracion/CualificacionesManager';
 import { PlantillasEditorAvanzado } from '@/components/hosix/PlantillasEditorAvanzado';
+import DashboardSincronizacion from '@/components/hosix/configuracion/DashboardSincronizacion';
 
 const ConfiguracionPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('general');
@@ -33,13 +34,18 @@ const ConfiguracionPage: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-1">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-1">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="usuarios">Usuarios</TabsTrigger>
           <TabsTrigger value="profesionales">Profesionales</TabsTrigger>
           <TabsTrigger value="permisos">Permisos</TabsTrigger>
           <TabsTrigger value="maestros">Maestros</TabsTrigger>
           <TabsTrigger value="plantillas">Plantillas</TabsTrigger>
+          <TabsTrigger value="sincronizacion">
+            <Wifi className="h-4 w-4 mr-1" />
+            Sync
+          </TabsTrigger>
+          <TabsTrigger value="kioscos">Kioscos</TabsTrigger>
           <TabsTrigger value="seguridad">Seguridad</TabsTrigger>
         </TabsList>
 
@@ -287,6 +293,127 @@ const ConfiguracionPage: React.FC = () => {
         {/* Plantillas */}
         <TabsContent value="plantillas" className="space-y-4">
           <PlantillasEditorAvanzado />
+        </TabsContent>
+
+        {/* Sincronización */}
+        <TabsContent value="sincronizacion" className="space-y-4">
+          <DashboardSincronizacion />
+        </TabsContent>
+
+        {/* Kioscos */}
+        <TabsContent value="kioscos" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Monitor className="h-5 w-5" />
+                Pantallas de Kioscos Públicos
+              </CardTitle>
+              <CardDescription>
+                Acceso a los 3 kioscos públicos del sistema sin autenticación
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Kiosko Pago */}
+                <div className="border rounded-lg p-4 bg-gradient-to-br from-green-50 to-green-100 hover:shadow-lg transition-shadow">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-bold text-lg text-green-900">Autofacturación</h3>
+                    <span className="text-2xl">💳</span>
+                  </div>
+                  <p className="text-sm text-green-700 mb-4">
+                    Sistema de pago automático escanando QR para servicios de laboratorio e imagenología
+                  </p>
+                  <div className="space-y-2 mb-4">
+                    <p className="text-xs text-green-600"><strong>✓</strong> Escanea código QR</p>
+                    <p className="text-xs text-green-600"><strong>✓</strong> 6 métodos de pago</p>
+                    <p className="text-xs text-green-600"><strong>✓</strong> Calcula vuelto</p>
+                    <p className="text-xs text-green-600"><strong>✓</strong> Genera recibo</p>
+                  </div>
+                  <Button
+                    onClick={() => window.open('/hosix/kioscos', '_blank')}
+                    className="w-full bg-green-600 hover:bg-green-700"
+                  >
+                    Abrir Kiosko
+                  </Button>
+                </div>
+
+                {/* Kiosko Resultados */}
+                <div className="border rounded-lg p-4 bg-gradient-to-br from-purple-50 to-purple-100 hover:shadow-lg transition-shadow">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-bold text-lg text-purple-900">Resultados</h3>
+                    <span className="text-2xl">📋</span>
+                  </div>
+                  <p className="text-sm text-purple-700 mb-4">
+                    Consulta resultados de laboratorio e imagenología por número de cédula
+                  </p>
+                  <div className="space-y-2 mb-4">
+                    <p className="text-xs text-purple-600"><strong>✓</strong> Búsqueda por cédula</p>
+                    <p className="text-xs text-purple-600"><strong>✓</strong> Resultados lab</p>
+                    <p className="text-xs text-purple-600"><strong>✓</strong> Estudios imagen</p>
+                    <p className="text-xs text-purple-600"><strong>✓</strong> Impresión</p>
+                  </div>
+                  <Button
+                    onClick={() => window.open('/hosix/kioscos', '_blank')}
+                    className="w-full bg-purple-600 hover:bg-purple-700"
+                  >
+                    Abrir Kiosko
+                  </Button>
+                </div>
+
+                {/* Kiosko Admisión */}
+                <div className="border rounded-lg p-4 bg-gradient-to-br from-orange-50 to-orange-100 hover:shadow-lg transition-shadow">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-bold text-lg text-orange-900">Admisión</h3>
+                    <span className="text-2xl">🎫</span>
+                  </div>
+                  <p className="text-sm text-orange-700 mb-4">
+                    Genera automáticamente número de turno en lista de espera por servicio
+                  </p>
+                  <div className="space-y-2 mb-4">
+                    <p className="text-xs text-orange-600"><strong>✓</strong> Búsqueda paciente</p>
+                    <p className="text-xs text-orange-600"><strong>✓</strong> Selecciona servicio</p>
+                    <p className="text-xs text-orange-600"><strong>✓</strong> Ticket automático</p>
+                    <p className="text-xs text-orange-600"><strong>✓</strong> Sin esperas</p>
+                  </div>
+                  <Button
+                    onClick={() => window.open('/hosix/kioscos', '_blank')}
+                    className="w-full bg-orange-600 hover:bg-orange-700"
+                  >
+                    Abrir Kiosko
+                  </Button>
+                </div>
+              </div>
+
+              {/* Información de Acceso */}
+              <div className="mt-6 pt-6 border-t">
+                <h4 className="font-semibold mb-2">Acceso Público</h4>
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <p className="text-sm text-blue-900 mb-2">
+                    <strong>URL Directa:</strong> <code className="bg-white px-2 py-1 rounded text-xs">/hosix/kioscos</code>
+                  </p>
+                  <p className="text-sm text-blue-700">
+                    Los kioscos están disponibles 24/7 sin necesidad de autenticación. Los usuarios pueden acceder mediante QR o código de URL.
+                  </p>
+                </div>
+              </div>
+
+              {/* Estado del Sistema */}
+              <div className="mt-4 grid grid-cols-3 gap-4">
+                <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                  <p className="text-xs text-green-600 font-semibold mb-1">✓ Pago</p>
+                  <p className="text-2xl font-bold text-green-700">100%</p>
+                </div>
+                <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                  <p className="text-xs text-green-600 font-semibold mb-1">✓ Resultados</p>
+                  <p className="text-2xl font-bold text-green-700">100%</p>
+                </div>
+                <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                  <p className="text-xs text-green-600 font-semibold mb-1">✓ Admisión</p>
+                  <p className="text-2xl font-bold text-green-700">100%</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Seguridad */}

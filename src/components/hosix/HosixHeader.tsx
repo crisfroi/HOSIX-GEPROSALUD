@@ -1,6 +1,7 @@
-import { Menu, Search, Bell, User } from 'lucide-react';
+import { Menu, Search, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NotificationBell } from '@/components/NotificationBell';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,15 +42,8 @@ const HosixHeader: React.FC<HosixHeaderProps> = ({ onToggleSidebar }) => {
 
       {/* Right: Notifications & User */}
       <div className="flex items-center gap-4">
-        {/* Notifications */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative text-sermed-blue hover:bg-sermed-blue/10"
-        >
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-sermed-green rounded-full"></span>
-        </Button>
+        {/* Notifications Bell */}
+        <NotificationBell />
 
         {/* User Menu */}
         <DropdownMenu>

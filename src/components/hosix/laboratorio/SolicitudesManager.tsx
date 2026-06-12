@@ -14,23 +14,23 @@ export const SolicitudesManager: React.FC = () => {
   const [filtroEstado, setFiltroEstado] = useState<string>('todos')
   const [isOpen, setIsOpen] = useState(false)
   const [formData, setFormData] = useState({
-    razon_solicitud: '',
-    diagnostico_presuntivo: '',
+    diagnostico_clinico: '',
+    observaciones: '',
     prioridad: 'normal',
-    requiere_resultado_urgente: false
+    fecha_requerida: ''
   })
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      await crearSolicitud.mutateAsync(formData)
+      await crearSolicitud(formData)
       toast.success('Solicitud creada exitosamente')
       setIsOpen(false)
       setFormData({
-        razon_solicitud: '',
-        diagnostico_presuntivo: '',
+        diagnostico_clinico: '',
+        observaciones: '',
         prioridad: 'normal',
-        requiere_resultado_urgente: false
+        fecha_requerida: ''
       })
     } catch (error: any) {
       toast.error(`Error: ${error.message}`)
@@ -38,18 +38,17 @@ export const SolicitudesManager: React.FC = () => {
   }
 
   const filtered = solicitudes.filter(s => {
-    const matchSearch = searchTerm === '' || 
-      s.numero_solicitud?.includes(searchTerm) ||
-      s.razon_solicitud?.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchEstado = filtroEstado === 'todos' || 
-      s.estado_solicitud === filtroEstado
+    const matchSearch = searchTerm === '' ||
+      s.diagnostico_clinico?.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchEstado = filtroEstado === 'todos' ||
+      s.estado === filtroEstado
     return matchSearch && matchEstado
   })
 
   const stats = {
-    pendientes: solicitudes.filter(s => s.estado_solicitud === 'pendiente').length,
-    procesando: solicitudes.filter(s => s.estado_solicitud === 'procesando').length,
-    completadas: solicitudes.filter(s => s.estado_solicitud === 'completada').length
+    pendientes: solicitudes.filter(s => s.estado === 'pendiente').length,
+    procesando: solicitudes.filter(s => s.estado === 'procesando').length,
+    completadas: solicitudes.filter(s => s.estado === 'completada').length
   }
 
   return (
@@ -98,19 +97,20 @@ export const SolicitudesManager: React.FC = () => {
                 </DialogHeader>
                 <form onSubmit={handleCreate} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Razón de solicitud</label>
+                    <label className="block text-sm font-medium mb-1">Diagnóstico Clínico</label>
                     <textarea
-                      value={formData.razon_solicitud}
-                      onChange={(e) => setFormData({...formData, razon_solicitud: e.target.value})}
+                      value={formData.diagnostico_clinico}
+                      onChange={(e) => setFormData({...formData, diagnostico_clinico: e.target.value})}
                       className="w-full px-3 py-2 border rounded"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Diagnóstico presuntivo</label>
-                    <Input
-                      value={formData.diagnostico_presuntivo}
-                      onChange={(e) => setFormData({...formData, diagnostico_presuntivo: e.target.value})}
+                    <label className="block text-sm font-medium mb-1">Observaciones</label>
+                    <textarea
+                      value={formData.observaciones}
+                      onChange={(e) => setFormData({...formData, observaciones: e.target.value})}
+                      className="w-full px-3 py-2 border rounded"
                     />
                   </div>
                   <div>
@@ -120,13 +120,19 @@ export const SolicitudesManager: React.FC = () => {
                       onChange={(e) => setFormData({...formData, prioridad: e.target.value})}
                       className="w-full px-3 py-2 border rounded"
                     >
-                      <option value="baja">Baja</option>
                       <option value="normal">Normal</option>
                       <option value="urgente">Urgente</option>
-                      <option value="critica">Crítica</option>
                     </select>
                   </div>
-                  <Button type="submit" className="w-full">Solicitar</Button>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Fecha Requerida</label>
+                    <Input
+                      type="date"
+                      value={formData.fecha_requerida}
+                      onChange={(e) => setFormData({...formData, fecha_requerida: e.target.value})}
+                    />
+                  </div>
+                  <Button type="submit" className="w-full">Crear Solicitud</Button>
                 </form>
               </DialogContent>
             </Dialog>
@@ -155,22 +161,19 @@ export const SolicitudesManager: React.FC = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nro Solicitud</TableHead>
-                <TableHead>Razón</TableHead>
+                <TableHead>Diagnóstico</TableHead>
                 <TableHead>Prioridad</TableHead>
                 <TableHead>Estado</TableHead>
-                <TableHead>Fecha</TableHead>
+                <TableHead>Fecha Solicitud</TableHead>
                 <TableHead>Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map((s: any) => (
                 <TableRow key={s.id}>
-                  <TableCell>{s.numero_solicitud}</TableCell>
-                  <TableCell>{s.razon_solicitud}</TableCell>
+                  <TableCell className="max-w-xs truncate">{s.diagnostico_clinico}</TableCell>
                   <TableCell>
                     <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                      s.prioridad === 'critica' ? 'bg-red-100 text-red-800' :
                       s.prioridad === 'urgente' ? 'bg-orange-100 text-orange-800' :
                       'bg-blue-100 text-blue-800'
                     }`}>
@@ -178,7 +181,7 @@ export const SolicitudesManager: React.FC = () => {
                     </span>
                   </TableCell>
                   <TableCell>
-                    <span className="px-2 py-1 rounded text-xs bg-gray-100">{s.estado_solicitud}</span>
+                    <span className="px-2 py-1 rounded text-xs bg-gray-100">{s.estado}</span>
                   </TableCell>
                   <TableCell>{new Date(s.fecha_solicitud).toLocaleDateString()}</TableCell>
                   <TableCell className="flex gap-2">

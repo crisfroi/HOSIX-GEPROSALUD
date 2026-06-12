@@ -34,10 +34,14 @@ import {
   AlertTriangle,
   CheckCircle,
   Loader2,
+  FlaskConical,
+  ImageIcon,
 } from 'lucide-react'
 import useHosixMedicos from '@/hooks/useHosixMedicos'
 import { DiagnosticoCIE11Selector } from '@/components/hosix/clinico/DiagnosticoCIE11Selector'
 import { useHosixCIE11, type DiagnosticoCIE11Seleccionado } from '@/hooks/useHosixCIE11'
+import { SelectorSolicitudesInline } from '@/components/hosix/integracion-lab-imagen/SelectorSolicitudesInline'
+import { supabase } from '@/integrations/supabase/hosixClient'
 import { toast } from 'sonner'
 
 interface ConsultaMedicaFormProps {
@@ -81,6 +85,11 @@ export const ConsultaMedicaForm: React.FC<ConsultaMedicaFormProps> = ({
   const [diagnosticosCIE11, setDiagnosticosCIE11] = useState<DiagnosticoCIE11Seleccionado[]>([])
   const [dialogoDiagnostico, setDialogoDiagnostico] = useState(false)
   const { guardarDiagnosticosCIE11 } = useHosixCIE11()
+
+  // Solicitudes de laboratorio e imagenología
+  const [solicitudesLaboratorio, setSolicitudesLaboratorio] = useState<any[]>([])
+  const [solicitudesImagenologia, setSolicitudesImagenologia] = useState<any[]>([])
+  const [dialogoSolicitudes, setDialogoSolicitudes] = useState(false)
 
   // Queries
   const { data: diagnosticosCatalogo = [], isLoading: loadingDiagnosticos } =
@@ -155,16 +164,42 @@ export const ConsultaMedicaForm: React.FC<ConsultaMedicaFormProps> = ({
         })
       }
 
+      // Crear solicitudes de laboratorio
+      for (const sol of solicitudesLaboratorio) {
+        await supabase.from('hosix_laboratorio_solicitudes').insert({
+          paciente_id: pacienteId,
+          diagnostico_clinico: sol.diagnostico_clinico,
+          prioridad: sol.prioridad,
+          fecha_requerida: sol.fecha_requerida,
+          observaciones: sol.observaciones,
+          estado: 'pendiente',
+        })
+      }
+
+      // Crear solicitudes de imagenología
+      for (const sol of solicitudesImagenologia) {
+        await supabase.from('hosix_imagenologia_solicitudes').insert({
+          paciente_id: pacienteId,
+          diagnostico_clinico: sol.diagnostico_clinico,
+          prioridad: sol.prioridad,
+          zona_interes: sol.zona_interes,
+          requiere_contraste: sol.requiere_contraste,
+          tipo_contraste: sol.tipo_contraste,
+          observaciones: sol.observaciones,
+          estado: 'pendiente',
+        })
+      }
+
       // Registrar entrada en diario clínico
       await registrarDiarioMutation.mutateAsync({
         paciente_id: pacienteId,
         medico_id: '',
         tipo_entrada: 'nota_clínica',
-        contenido: `Consulta médica realizada. Diagnósticos CIE-10: ${diagnosticosSeleccionados.length}, CIE-11: ${diagnosticosCIE11.length}`,
+        contenido: `Consulta médica realizada. Diagnósticos CIE-10: ${diagnosticosSeleccionados.length}, CIE-11: ${diagnosticosCIE11.length}, Lab: ${solicitudesLaboratorio.length}, Imagen: ${solicitudesImagenologia.length}`,
         firmada: false,
       })
 
-      toast.success('Consulta médica registrada exitosamente')
+      toast.success('Consulta médica y solicitudes registradas exitosamente')
       // Limpiar formulario
       setFormData({
         antecedentes_relevantes: '',
@@ -182,8 +217,11 @@ export const ConsultaMedicaForm: React.FC<ConsultaMedicaFormProps> = ({
       })
       setDiagnosticosSeleccionados([])
       setDiagnosticosCIE11([])
+      setSolicitudesLaboratorio([])
+      setSolicitudesImagenologia([])
     } catch (error) {
       console.error('Error:', error)
+      toast.error('Error al registrar consulta')
     }
   }
 
@@ -450,6 +488,128 @@ export const ConsultaMedicaForm: React.FC<ConsultaMedicaFormProps> = ({
               className="mt-2"
             />
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Solicitudes de Laboratorio e Imagenología */}
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>Pruebas de Laboratorio e Imagenología</CardTitle>
+              <CardDescription>
+                Solicite pruebas de laboratorio o estudios de imagenología según sea necesario
+              </CardDescription>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => setDialogoSolicitudes(true)}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Agregar Solicitud
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {solicitudesLaboratorio.length === 0 && solicitudesImagenologia.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <AlertCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
+              <p>No hay solicitudes agregadas</p>
+              <p className="text-sm">Haga clic en "Agregar Solicitud" para incluir pruebas</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {solicitudesLaboratorio.map((sol) => (
+                <div key={sol.id} className="border p-3 rounded-lg bg-blue-50">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <FlaskConical className="h-4 w-4 text-blue-600" />
+                        <p className="font-medium">{sol.prueba_nombre}</p>
+                      </div>
+                      <div className="flex gap-2 mt-1">
+                        <Badge variant="outline">Laboratorio</Badge>
+                        <Badge variant="outline">{sol.prioridad}</Badge>
+                      </div>
+                      {sol.diagnostico_clinico && (
+                        <p className="text-sm text-gray-600 mt-2">
+                          Diagnóstico: {sol.diagnostico_clinico}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() =>
+                        setSolicitudesLaboratorio(
+                          solicitudesLaboratorio.filter((s) => s.id !== sol.id)
+                        )
+                      }
+                    >
+                      ✕
+                    </Button>
+                  </div>
+                </div>
+              ))}
+
+              {solicitudesImagenologia.map((sol) => (
+                <div key={sol.id} className="border p-3 rounded-lg bg-green-50">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <ImageIcon className="h-4 w-4 text-green-600" />
+                        <p className="font-medium">{sol.modalidad_nombre}</p>
+                      </div>
+                      <div className="flex gap-2 mt-1">
+                        <Badge variant="outline">Imagenología</Badge>
+                        <Badge variant="outline">{sol.prioridad}</Badge>
+                      </div>
+                      {sol.zona_interes && (
+                        <p className="text-sm text-gray-600 mt-1">
+                          Zona: {sol.zona_interes}
+                        </p>
+                      )}
+                      {sol.requiere_contraste && (
+                        <Badge className="mt-2" variant="outline">
+                          Requiere Contraste
+                        </Badge>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() =>
+                        setSolicitudesImagenologia(
+                          solicitudesImagenologia.filter((s) => s.id !== sol.id)
+                        )
+                      }
+                    >
+                      ✕
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <Dialog open={dialogoSolicitudes} onOpenChange={setDialogoSolicitudes}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Agregar Solicitudes de Laboratorio e Imagenología</DialogTitle>
+              </DialogHeader>
+              <SelectorSolicitudesInline
+                pacienteId={pacienteId}
+                onSolicitudesLabAgregar={(nuevas) => {
+                  setSolicitudesLaboratorio([...solicitudesLaboratorio, ...nuevas])
+                  setDialogoSolicitudes(false)
+                }}
+                onSolicitudesImagenAgregar={(nuevas) => {
+                  setSolicitudesImagenologia([...solicitudesImagenologia, ...nuevas])
+                  setDialogoSolicitudes(false)
+                }}
+              />
+            </DialogContent>
+          </Dialog>
         </CardContent>
       </Card>
 

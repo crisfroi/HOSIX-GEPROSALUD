@@ -3,6 +3,7 @@ import { useHosixLaboratorio } from '@/hooks/useHosixLaboratorio'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { SolicitudesManager } from '@/components/hosix/laboratorio/SolicitudesManager'
+import { ResultadosViewer } from '@/components/hosix/laboratorio/ResultadosViewer'
 
 export default function LaboratorioPage() {
   const { pruebas = [], solicitudes = [], resultados = [] } = useHosixLaboratorio()
@@ -30,7 +31,7 @@ export default function LaboratorioPage() {
             <CardTitle className="text-sm font-medium">Solicitudes Pendientes</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{solicitudes.filter(s => s.estado_solicitud === 'pendiente').length}</div>
+            <div className="text-2xl font-bold">{solicitudes.filter(s => s.estado === 'pendiente').length}</div>
           </CardContent>
         </Card>
 
@@ -65,23 +66,42 @@ export default function LaboratorioPage() {
         </TabsContent>
 
         <TabsContent value="resultados">
-          <Card>
-            <CardHeader>
-              <CardTitle>Resultados de Laboratorio</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">Módulo de resultados en desarrollo</p>
-            </CardContent>
-          </Card>
+          <ResultadosViewer />
         </TabsContent>
 
         <TabsContent value="pruebas">
           <Card>
             <CardHeader>
-              <CardTitle>Catálogo de Pruebas</CardTitle>
+              <CardTitle>Catálogo de Pruebas ({pruebas.length})</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-600">{pruebas.length} pruebas disponibles en el sistema</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {pruebas.map((p: any) => (
+                  <Card key={p.id} className="border">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">{p.nombre}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div>
+                        <p className="text-xs text-gray-600">Código</p>
+                        <p className="font-mono">{p.codigo}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-600">Categoría</p>
+                        <p>{p.categoria}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-600">Muestra</p>
+                        <p>{p.tipo_muestra}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-600">Tiempo de Resultado</p>
+                        <p>{p.tiempo_procesamiento_horas}h</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

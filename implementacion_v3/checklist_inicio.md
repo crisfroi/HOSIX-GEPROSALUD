@@ -170,79 +170,114 @@
 
 ---
 
-### FASE 5 - 8 MÓDULOS
+### FASE 5 - 8 MÓDULOS ✅ COMPLETADA
 
-#### [ ] 5.1 AdmisionCentral
-- [ ] Funcionalidad definida
-- [ ] Componentes básicos
-- [ ] Acceso web ✅
-- [ ] Documentado en log
+#### [x] 5.1 AdmisionCentral ✅
+- [x] Funcionalidad definida
+- [x] Componentes básicos
+- [x] Acceso web ✅
+- [x] Documentado en log
+- [x] Migraciones aplicadas
+- [x] Errores corregidos
 
-#### [ ] 5.2 CRED
-- [ ] Gráficos crecimiento
-- [ ] Evaluaciones psicomotoras
-- [ ] Acceso web ✅
-- [ ] Documentado en log
+#### [x] 5.2 CRED ✅
+- [x] Tablas creadas (hosix_cred_seguimiento, hosix_cred_vacunacion)
+- [x] Hooks implementados (useHosixCRED.ts)
+- [x] Acceso web ✅
+- [x] Migraciones aplicadas
+- [x] Documentado en log
 
-#### [ ] 5.3 Cajas
-- [ ] Caja registradora
-- [ ] Recuento diario
-- [ ] Cuadratura
-- [ ] Acceso web ✅
-- [ ] Documentado en log
+#### [x] 5.3 Cajas ✅
+- [x] Caja registradora funcional
+- [x] Recuento diario
+- [x] Cuadratura
+- [x] Acceso web ✅
+- [x] Migraciones aplicadas
+- [x] Documentado en log
 
-#### [ ] 5.4 Compras
-- [ ] Órdenes de compra
-- [ ] Solicitudes proveedores
-- [ ] Licitaciones
-- [ ] Acceso web ✅
-- [ ] Documentado en log
+#### [x] 5.4 Compras ✅
+- [x] Órdenes de compra
+- [x] Solicitudes proveedores
+- [x] Licitaciones
+- [x] Acceso web ✅
+- [x] Migraciones aplicadas (presupuestos, licitaciones, ofertas, adjudicaciones)
+- [x] Documentado en log
 
-#### [ ] 5.5 Interconsultas
-- [ ] Solicitud entre servicios
-- [ ] Seguimiento respuestas
-- [ ] Acceso web ✅
-- [ ] Documentado en log
+#### [x] 5.5 Interconsultas ✅
+- [x] Solicitud entre servicios
+- [x] Seguimiento respuestas
+- [x] Acceso web ✅
+- [x] Migraciones aplicadas
+- [x] Documentado en log
 
-#### [ ] 5.6 Recobros
-- [ ] Recuperación pagos
-- [ ] Facturas asociadas
-- [ ] Recibos/comprobantes
-- [ ] Acceso web ✅
-- [ ] Documentado en log
+#### [x] 5.6 Recobros ✅
+- [x] Recuperación pagos
+- [x] Facturas asociadas
+- [x] Recibos/comprobantes
+- [x] Acceso web ✅
+- [x] Migraciones aplicadas
+- [x] Documentado en log
 
-#### [ ] 5.7 Suministros
-- [ ] Almacenes multinivel
-- [ ] Control stock
-- [ ] Pedidos internos
-- [ ] Acceso web ✅
-- [ ] Documentado en log
+#### [x] 5.7 Suministros ✅
+- [x] Almacenes multinivel
+- [x] Control stock
+- [x] Pedidos internos
+- [x] Acceso web ✅
+- [x] Migraciones aplicadas
+- [x] Documentado en log
 
-#### [ ] 5.8 BI
-- [ ] Dashboards
-- [ ] Métricas desempeño
-- [ ] Reportes personalizables
-- [ ] Acceso web ✅
-- [ ] Documentado en log
+#### [x] 5.8 BI ✅
+- [x] Dashboards
+- [x] Métricas desempeño
+- [x] Reportes personalizables
+- [x] Acceso web ✅
+- [x] Documentado en log
 
 ---
 
-### FASE 6 - INTEGRACIONES
+### FASE 6 - INTEGRACIONES AVANZADAS 🔄 EN PROGRESO (50%)
 
-#### [ ] 6.1 Lab-HIS
-- [ ] API diseñada
-- [ ] Solicitud pruebas
-- [ ] Retorno resultados
-- [ ] Notificaciones
-- [ ] Documentado en log
+#### [x] 6.0B Nodo Central + Historia Clínica Única 📋 (11-JUN @ 12:00 UTC)
+- [x] Arquitectura completa documentada
+- [x] Algoritmo generador de HCU diseñado
+- [x] Flujo de admisión con sincronización planificado
+- [x] Guía de cambios para edge functions creada
+- [ ] IMPLEMENTAR: Crear BD Nodo Central (Fase 7+)
+- [ ] IMPLEMENTAR: API Nodo Central
+- [ ] IMPLEMENTAR: Integración en AdmisionCentralForm
+- [ ] IMPLEMENTAR: Sincronización bidireccional
 
-#### [ ] 6.2 Imagenología-HIS
-- [ ] API diseñada
-- [ ] Solicitud estudios
-- [ ] Retorno imágenes
-- [ ] Documentado en log
+#### [x] 6.0 Integración Lab-Imagen-Facturación-Kiosko 🟡 (11-JUN @ 11:00 UTC)
+- [x] Estrategia integral creada
+- [x] Migración SQL diseñada (lista para aplicar)
+- [x] 3 Edge functions críticas creadas (QR, disponibilidad, caja)
+- [ ] Migración aplicada a BD
+- [ ] Componentes frontend creados (SelectorSolicitudesInline, VerificadorDisponibilidad)
+- [ ] Integración en ConsultaMedicaForm.tsx
+- [ ] Integración en Cajas.tsx
+- [ ] Kiosko de autofacturación implementado
 
-#### [ ] 6.3 Portal Web
+#### [x] 6.1 Lab-HIS 🟢 (11-JUN @ 09:15 UTC)
+- [x] API diseñada y edge function creada
+- [x] Solicitud pruebas implementada
+- [x] Retorno resultados implementado
+- [ ] Notificaciones SMS (pendiente)
+- [x] Documentado en log
+- [x] Componentes alineados con BD
+- [x] Hook actualizado
+- [x] Página integrada
+
+#### [x] 6.2 Imagenología-HIS 🟢 (11-JUN @ 10:30 UTC)
+- [x] API diseñada y edge function creada (5 acciones)
+- [x] Solicitud estudios implementada con modalidades
+- [x] Retorno imágenes (estudios DICOM) implementado
+- [x] Reportes radiológicos con firma digital
+- [x] Componentes alineados con BD
+- [x] Hook actualizado
+- [x] Página integrada con 3 tabs
+- [x] Documentado en log
+
+#### [ ] 6.3 Portal Web Pacientes
 - [ ] Portal diseñado
 - [ ] Acceso pacientes
 - [ ] Acceso sanitarios
@@ -258,6 +293,12 @@
 - [ ] Búsqueda duplicados
 - [ ] Sincronización asíncrona
 - [ ] Historial centralizado
+- [ ] Documentado en log
+
+#### [ ] 6.6 Seguridad Azure
+- [ ] Integración SSO
+- [ ] MFA
+- [ ] Auditoría avanzada
 - [ ] Documentado en log
 
 ---

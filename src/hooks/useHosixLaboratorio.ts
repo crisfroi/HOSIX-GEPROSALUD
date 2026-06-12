@@ -82,7 +82,7 @@ export const useHosixLaboratorio = () => {
     solicitudesLoading: solicitudesQuery.isLoading,
     resultados: resultadosQuery.data || [],
     resultadosLoading: resultadosQuery.isLoading,
-    crearSolicitud: crearSolicitudMutation.mutate,
-    registrarResultado: registrarResultadoMutation.mutate
+    crearSolicitud: crearSolicitudMutation,
+    registrarResultado: registrarResultadoMutation
   }
 }

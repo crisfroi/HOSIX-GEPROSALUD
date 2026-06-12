@@ -6,8 +6,9 @@ import { TurnosCajaManager } from '@/components/hosix/cajas/TurnosCajaManager';
 import { MovimientosCajaForm } from '@/components/hosix/cajas/MovimientosCajaForm';
 import { CierresCajaManager } from '@/components/hosix/cajas/CierresCajaManager';
 import { ArqueosManager } from '@/components/hosix/cajas/ArqueosManager';
+import { ScannerQRCaja } from '@/components/hosix/integracion-lab-imagen/ScannerQRCaja';
 import { useHosixCajas } from '@/hooks/useHosixCajas';
-import { CreditCard, Clock, Zap, CheckCircle, Percent } from 'lucide-react';
+import { CreditCard, Clock, Zap, CheckCircle, Percent, QrCode } from 'lucide-react';
 
 export default function CajasPage() {
   const { cajas, turnos, movimientos, cierres, arqueos } = useHosixCajas();
@@ -112,14 +113,23 @@ export default function CajasPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="scanner">
+            <QrCode className="h-4 w-4 mr-2" />
+            Scanner
+          </TabsTrigger>
           <TabsTrigger value="cajas">Cajas</TabsTrigger>
           <TabsTrigger value="turnos">Turnos</TabsTrigger>
           <TabsTrigger value="movimientos">Movimientos</TabsTrigger>
           <TabsTrigger value="cierres">Cierres</TabsTrigger>
           <TabsTrigger value="arqueos">Arqueos</TabsTrigger>
         </TabsList>
+
+        {/* Scanner QR Tab */}
+        <TabsContent value="scanner" className="space-y-6">
+          <ScannerQRCaja />
+        </TabsContent>
 
         {/* Dashboard Tab */}
         <TabsContent value="dashboard" className="space-y-6">

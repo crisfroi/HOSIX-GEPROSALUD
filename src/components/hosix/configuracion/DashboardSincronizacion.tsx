@@ -39,14 +39,14 @@ export default function DashboardSincronizacion() {
   const [isInitializing, setIsInitializing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
-  const [lastSync, setLastSync] = useState<string | null>(null);
 
-  // Cargar estado inicial
+  // Cargar estado inicial y configurar listeners de red
   useEffect(() => {
+    console.log('🖥️ [Dashboard] Montando interfaz operativa de sincronización.');
     loadEstado();
     
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
+    const handleOnline = () => { console.log('🌐 Red online detectada'); setIsOnline(true); };
+    const handleOffline = () => { console.log('🌐 Red offline detectada'); setIsOnline(false); };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -55,17 +55,23 @@ export default function DashboardSincronizacion() {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [syncService]);
 
-  // Recargar cada 30 segundos
+  // Recargar el estado de forma segura cada 30 segundos usando el servicio corregido
   useEffect(() => {
-    const interval = setInterval(loadEstado, 30000);
+    const interval = setInterval(() => {
+      console.log('🔄 [Dashboard] Ejecutando ping periódico de actualización...');
+      loadEstado();
+    }, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [syncService]);
 
   const loadEstado = async () => {
     try {
+      console.log('⏳ [Dashboard] Solicitando métricas al servicio de sincronización...');
       const estadoActual = await syncService.obtenerEstadoSync();
+      console.log('📋 [Dashboard] Nuevas métricas renderizadas:', estadoActual);
+      
       setEstado(estadoActual || {
         centros_locales: 0,
         profesionales_locales: 0,
@@ -74,9 +80,8 @@ export default function DashboardSincronizacion() {
         cambios_en_cola: 0,
         ultima_sincronizacion: null
       });
-      setIsLoading(false);
     } catch (error) {
-      console.error('Error cargando estado:', error);
+      console.error('❌ Error cargando estado en Dashboard:', error);
       setEstado({
         centros_locales: 0,
         profesionales_locales: 0,
@@ -85,22 +90,25 @@ export default function DashboardSincronizacion() {
         cambios_en_cola: 0,
         ultima_sincronizacion: null
       });
+    } finally {
       setIsLoading(false);
     }
   };
 
   const handleInicializar = async () => {
+    console.log('🚀 [Click Button] Ejecutando descarga de referencias estructurales...');
     setIsInitializing(true);
     try {
       const resultado = await syncService.inicializarHospitalLocal();
+      console.log('📦 [Resultado de Inicialización]:', resultado);
       
       if (resultado.exitoso) {
         toast.success(
-          `Hospital inicializado: ${resultado.distritos} distritos, ${resultado.centros} centros, ${resultado.profesionales} profesionales, ${resultado.pacientes} pacientes`
+          `Hospital inicializado con éxito. Copia local creada.`
         );
         await loadEstado();
       } else {
-        toast.error(`Error: ${resultado.error}`);
+        toast.error(`Error en inicialización: ${resultado.error}`);
       }
     } catch (error: any) {
       toast.error(`Error al inicializar: ${error.message}`);
@@ -115,13 +123,14 @@ export default function DashboardSincronizacion() {
       return;
     }
 
+    console.log('🚀 [Click Button] Forzando ráfaga de sincronización manual...');
     setIsSyncing(true);
     try {
       const resultado = await syncService.sincronizar();
+      console.log('📦 [Resultado de Sincronización Bidireccional]:', resultado);
       
       if (resultado.exitoso) {
         toast.success(`Sincronización completada: ${resultado.sincronizados} cambios procesados`);
-        setLastSync(new Date().toLocaleString());
         await loadEstado();
       } else {
         toast.error(`Error en sincronización: ${resultado.error}`);
@@ -130,6 +139,16 @@ export default function DashboardSincronizacion() {
       toast.error(`Error: ${error.message}`);
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  const formatFecha = (fechaStr: string | null | undefined) => {
+    if (!fechaStr) return 'Nunca';
+    try {
+      const d = new Date(fechaStr);
+      return isNaN(d.getTime()) ? 'Nunca' : d.toLocaleString();
+    } catch {
+      return 'Nunca';
     }
   };
 
@@ -239,8 +258,8 @@ export default function DashboardSincronizacion() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{estado?.profesionales_locales || 0}</div>
-            <p className="text-xs text-gray-500 mt-1">Activos en hospital</p>
+            <div className="text-2xl font-bold text-blue-600">{estado?.profesionales_locales || 0}</div>
+            <p className="text-xs text-gray-500 mt-1">Activos en este hospital</p>
           </CardContent>
         </Card>
 
@@ -306,9 +325,7 @@ export default function DashboardSincronizacion() {
           </CardHeader>
           <CardContent>
             <div className="text-sm font-mono">
-              {lastSync || estado?.ultima_sincronizacion 
-                ? new Date(lastSync || estado?.ultima_sincronizacion || '').toLocaleString() 
-                : 'Nunca'}
+              {formatFecha(estado?.ultima_sincronizacion)}
             </div>
             <p className="text-xs text-gray-500 mt-1">Con Nodo Central</p>
           </CardContent>

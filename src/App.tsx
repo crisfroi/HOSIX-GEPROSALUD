@@ -51,6 +51,7 @@ import PortalResultados from '@/pages/Portal/PortalResultados'
 import PortalCitas from '@/pages/Portal/PortalCitas'
 import PortalRecetas from '@/pages/Portal/PortalRecetas'
 import PortalPerfil from '@/pages/Portal/PortalPerfil'
+import PortalContacto from '@/pages/Portal/PortalContacto'
 
 function App() {
   return (
@@ -105,6 +106,7 @@ function App() {
                   <Route path="citas" element={<PortalCitas />} />
                   <Route path="recetas" element={<PortalRecetas />} />
                   <Route path="perfil" element={<PortalPerfil />} />
+                  <Route path="contacto" element={<PortalContacto />} />
                 </Route>
               </Routes>
             </BrowserRouter>

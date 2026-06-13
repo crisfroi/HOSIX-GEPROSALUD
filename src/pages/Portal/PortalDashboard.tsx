@@ -1,121 +1,29 @@
-import React, { useEffect, useState } from 'react'
-import { supabase } from '@/app/supabase'
+import React from 'react'
+import { useNavigate } from 'react-router-dom'
+import { usePortalAuth } from '@/hooks/usePortalAuth'
+import { usePortalData } from '@/hooks/usePortalData'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { 
-  FileText, 
-  Calendar, 
-  TestTube, 
-  Pill, 
-  AlertCircle, 
+import {
+  FileText,
+  Calendar,
+  TestTube,
+  Pill,
+  AlertCircle,
   CheckCircle2,
   Clock
 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
-
-interface DashboardData {
-  paciente: any
-  citas_proximas: number
-  resultados_pendientes: number
-  recetas_activas: number
-  consultasRecientes: any[]
-}
 
 export default function PortalDashboard() {
   const navigate = useNavigate()
-  const [data, setData] = useState<DashboardData | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const { paciente, isLoading: authLoading } = usePortalAuth()
+  const { citas, resultados, recetas, historial, isLoading: dataLoading } = usePortalData({
+    hcu: paciente?.hcu,
+    enabled: !!paciente?.hcu
+  })
 
-  useEffect(() => {
-    loadDashboardData()
-  }, [])
-
-  const loadDashboardData = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-
-      if (!user) {
-        navigate('/portal/login')
-        return
-      }
-
-      // Cargar perfil del paciente
-      const { data: paciente } = await supabase
-        .from('portal_pacientes')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-
-      // Obtener HCU del paciente para buscar en tablas clínicas
-      const hcu = paciente?.hcu
-
-      if (!hcu) {
-        setData({
-          paciente,
-          citas_proximas: 0,
-          resultados_pendientes: 0,
-          recetas_activas: 0,
-          consultasRecientes: []
-        })
-        setIsLoading(false)
-        return
-      }
-
-      // Cargar datos reales en paralelo
-      const [citasRes, resultadosRes, recetasRes, consultasRes] = await Promise.all([
-        // Citas próximas
-        supabase
-          .from('hosix_citas')
-          .select('id, fecha, hora, especialidad, estado')
-          .eq('hcu_paciente', hcu)
-          .gt('fecha', new Date().toISOString())
-          .eq('estado', 'confirmada')
-          .limit(10),
-        // Resultados pendientes
-        supabase
-          .from('laboratorio_resultados')
-          .select('id, fecha_resultado, tipo_prueba')
-          .eq('hcu_paciente', hcu)
-          .eq('estado', 'pendiente')
-          .limit(10),
-        // Recetas activas (farmacia)
-        supabase
-          .from('hosix_dispensario')
-          .select('id, medicamento, fecha_dispensacion, duracion')
-          .eq('hcu_paciente', hcu)
-          .gte('fecha_dispensacion', new Date(new Date().setDate(new Date().getDate() - 30)).toISOString())
-          .limit(10),
-        // Consultas recientes (últimas 5)
-        supabase
-          .from('hosix_historia_clinica')
-          .select('id, fecha_consulta, diagnostico, profesional_id')
-          .eq('hcu_paciente', hcu)
-          .order('fecha_consulta', { ascending: false })
-          .limit(5)
-      ])
-
-      setData({
-        paciente,
-        citas_proximas: citasRes.data?.length || 0,
-        resultados_pendientes: resultadosRes.data?.length || 0,
-        recetas_activas: recetasRes.data?.length || 0,
-        consultasRecientes: consultasRes.data || []
-      })
-    } catch (error) {
-      console.error('Error cargando dashboard:', error)
-      // No fallar silenciosamente, mostrar datos básicos
-      setData({
-        paciente: null,
-        citas_proximas: 0,
-        resultados_pendientes: 0,
-        recetas_activas: 0,
-        consultasRecientes: []
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const isLoading = authLoading || dataLoading
 
   if (isLoading) {
     return (
@@ -129,111 +37,122 @@ export default function PortalDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Bienvenida */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">
-          Bienvenido, {data?.paciente?.nombre_completo}
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+          Bienvenido, {paciente?.nombre_completo?.split(' ')[0]}
         </h1>
-        <p className="text-gray-600 mt-2">
-          HCU: {data?.paciente?.hcu} | Centro: {data?.paciente?.centro_salud_id || 'No asignado'}
+        <p className="text-xs sm:text-sm text-gray-600 mt-2 truncate">
+          HCU: {paciente?.hcu}
         </p>
       </div>
 
       {/* Alertas importantes */}
-      {data?.paciente?.alergias && JSON.stringify(data.paciente.alergias) !== '[]' && (
+      {paciente?.alergias && JSON.stringify(paciente.alergias) !== '[]' && (
         <Alert className="border-orange-200 bg-orange-50">
-          <AlertCircle className="h-4 w-4 text-orange-600" />
-          <AlertDescription className="text-orange-700">
-            Tienes alergias registradas. Revisa tu perfil para ver los detalles.
+          <AlertCircle className="h-4 w-4 text-orange-600 flex-shrink-0" />
+          <AlertDescription className="text-orange-700 text-xs sm:text-sm ml-2">
+            Tienes alergias registradas. Revisa tu perfil.
           </AlertDescription>
         </Alert>
       )}
 
       {/* Cards de acceso rápido */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         {/* Citas */}
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/portal/citas')}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-              <Calendar size={18} className="text-blue-600" />
-              Citas Próximas
+        <Card
+          className="hover:shadow-lg transition-shadow cursor-pointer active:scale-95 sm:active:scale-100"
+          onClick={() => navigate('/portal/citas')}
+        >
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-2 min-h-6">
+              <Calendar size={16} className="sm:size-[18px] text-blue-600 flex-shrink-0" />
+              <span className="truncate">Citas</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-blue-600">{data?.citas_proximas}</div>
-            <p className="text-xs text-gray-500 mt-1">Próximas 30 días</p>
+            <div className="text-2xl sm:text-3xl font-bold text-blue-600">{citas.length}</div>
+            <p className="text-xs text-gray-500 mt-1">Próximas</p>
           </CardContent>
         </Card>
 
         {/* Resultados */}
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/portal/resultados')}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-              <TestTube size={18} className="text-purple-600" />
-              Resultados
+        <Card
+          className="hover:shadow-lg transition-shadow cursor-pointer active:scale-95 sm:active:scale-100"
+          onClick={() => navigate('/portal/resultados')}
+        >
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-2 min-h-6">
+              <TestTube size={16} className="sm:size-[18px] text-purple-600 flex-shrink-0" />
+              <span className="truncate">Resultados</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-purple-600">{data?.resultados_pendientes}</div>
-            <p className="text-xs text-gray-500 mt-1">Pendientes de consultar</p>
+            <div className="text-2xl sm:text-3xl font-bold text-purple-600">{resultados.length}</div>
+            <p className="text-xs text-gray-500 mt-1">Nuevos</p>
           </CardContent>
         </Card>
 
         {/* Recetas */}
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/portal/recetas')}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-              <Pill size={18} className="text-green-600" />
-              Recetas Activas
+        <Card
+          className="hover:shadow-lg transition-shadow cursor-pointer active:scale-95 sm:active:scale-100"
+          onClick={() => navigate('/portal/recetas')}
+        >
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-2 min-h-6">
+              <Pill size={16} className="sm:size-[18px] text-green-600 flex-shrink-0" />
+              <span className="truncate">Recetas</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-600">{data?.recetas_activas}</div>
-            <p className="text-xs text-gray-500 mt-1">Medicamentos activos</p>
+            <div className="text-2xl sm:text-3xl font-bold text-green-600">{recetas.length}</div>
+            <p className="text-xs text-gray-500 mt-1">Activas</p>
           </CardContent>
         </Card>
 
         {/* Historial */}
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/portal/historial')}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-              <FileText size={18} className="text-amber-600" />
-              Historial
+        <Card
+          className="hover:shadow-lg transition-shadow cursor-pointer active:scale-95 sm:active:scale-100"
+          onClick={() => navigate('/portal/historial')}
+        >
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-2 min-h-6">
+              <FileText size={16} className="sm:size-[18px] text-amber-600 flex-shrink-0" />
+              <span className="truncate">Historial</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-amber-600">Ver</div>
-            <p className="text-xs text-gray-500 mt-1">Todo tu historial médico</p>
+            <div className="text-2xl sm:text-3xl font-bold text-amber-600">Ver</div>
+            <p className="text-xs text-gray-500 mt-1">Médico</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Secciones adicionales */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Datos de Salud */}
         <Card>
-          <CardHeader>
-            <CardTitle>Datos de Salud</CardTitle>
-            <CardDescription>Información médica importante</CardDescription>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base sm:text-lg">Datos de Salud</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-2 sm:space-y-3">
             <div>
-              <p className="text-sm text-gray-600">Tipo de Sangre</p>
-              <p className="text-lg font-semibold text-gray-900">
-                {data?.paciente?.tipo_sangre || 'No registrado'}
+              <p className="text-xs sm:text-sm text-gray-600">Tipo de Sangre</p>
+              <p className="text-base sm:text-lg font-semibold text-gray-900">
+                {paciente?.tipo_sangre || 'No registrado'}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Género</p>
-              <p className="text-lg font-semibold text-gray-900">
-                {data?.paciente?.genero === 'M' ? 'Masculino' : data?.paciente?.genero === 'F' ? 'Femenino' : 'No registrado'}
+              <p className="text-xs sm:text-sm text-gray-600">Género</p>
+              <p className="text-base sm:text-lg font-semibold text-gray-900">
+                {paciente?.genero === 'M' ? 'Masculino' : paciente?.genero === 'F' ? 'Femenino' : 'No registrado'}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Centro de Salud</p>
-              <p className="text-lg font-semibold text-gray-900">
-                {data?.paciente?.centro_salud_id ? 'Asignado' : 'No asignado'}
+              <p className="text-xs sm:text-sm text-gray-600">Centro de Salud</p>
+              <p className="text-base sm:text-lg font-semibold text-gray-900">
+                {paciente?.centro_salud_id ? 'Asignado' : 'No asignado'}
               </p>
             </div>
           </CardContent>
@@ -241,50 +160,49 @@ export default function PortalDashboard() {
 
         {/* Acciones Rápidas */}
         <Card>
-          <CardHeader>
-            <CardTitle>Acciones Rápidas</CardTitle>
-            <CardDescription>Acceso directo a funciones comunes</CardDescription>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base sm:text-lg">Acciones Rápidas</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
-            <Button 
-              variant="outline" 
-              className="w-full justify-start"
+          <CardContent className="space-y-1 sm:space-y-2">
+            <Button
+              variant="outline"
+              className="w-full justify-start text-xs sm:text-sm h-9 sm:h-10"
               onClick={() => navigate('/portal/citas')}
             >
-              <Calendar className="h-4 w-4 mr-2" />
-              Programar cita médica
+              <Calendar className="h-4 w-4 mr-2 flex-shrink-0" />
+              <span className="truncate">Programar cita</span>
             </Button>
-            <Button 
-              variant="outline" 
-              className="w-full justify-start"
+            <Button
+              variant="outline"
+              className="w-full justify-start text-xs sm:text-sm h-9 sm:h-10"
               onClick={() => navigate('/portal/resultados')}
             >
-              <TestTube className="h-4 w-4 mr-2" />
-              Descargar resultados
+              <TestTube className="h-4 w-4 mr-2 flex-shrink-0" />
+              <span className="truncate">Ver resultados</span>
             </Button>
-            <Button 
-              variant="outline" 
-              className="w-full justify-start"
+            <Button
+              variant="outline"
+              className="w-full justify-start text-xs sm:text-sm h-9 sm:h-10"
               onClick={() => navigate('/portal/contacto')}
             >
-              <AlertCircle className="h-4 w-4 mr-2" />
-              Contactar centro de salud
+              <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
+              <span className="truncate">Contactar</span>
             </Button>
-            <Button 
-              variant="outline" 
-              className="w-full justify-start"
+            <Button
+              variant="outline"
+              className="w-full justify-start text-xs sm:text-sm h-9 sm:h-10"
               onClick={() => navigate('/portal/perfil')}
             >
-              <FileText className="h-4 w-4 mr-2" />
-              Actualizar perfil
+              <FileText className="h-4 w-4 mr-2 flex-shrink-0" />
+              <span className="truncate">Mi perfil</span>
             </Button>
           </CardContent>
         </Card>
       </div>
 
       {/* Última actualización */}
-      <div className="text-right text-sm text-gray-500">
-        <p>Última actualización: {new Date().toLocaleDateString('es-ES')}</p>
+      <div className="text-right text-xs sm:text-sm text-gray-500 pt-2">
+        <p>Actualizado: {new Date().toLocaleDateString('es-ES')}</p>
       </div>
     </div>
   )

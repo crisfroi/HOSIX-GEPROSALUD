@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useHosixPacientes } from '@/hooks/useHosixPacientes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -161,16 +161,21 @@ export default function PacientesList() {
                         <PaginationPrevious onClick={() => setCurrentPage(currentPage - 1)} />
                       </PaginationItem>
                     )}
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                      <PaginationItem key={page}>
-                        <PaginationLink
-                          onClick={() => setCurrentPage(page)}
-                          isActive={currentPage === page}
-                        >
-                          {page}
-                        </PaginationLink>
-                      </PaginationItem>
-                    ))}
+
+                    {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
+                      const pageNum = currentPage <= 3 ? i + 1 : currentPage + i - 2;
+                      return pageNum <= totalPages ? (
+                        <PaginationItem key={pageNum}>
+                          <PaginationLink
+                            onClick={() => setCurrentPage(pageNum)}
+                            isActive={currentPage === pageNum}
+                          >
+                            {pageNum}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ) : null;
+                    })}
+
                     {currentPage < totalPages && (
                       <PaginationItem>
                         <PaginationNext onClick={() => setCurrentPage(currentPage + 1)} />
@@ -184,16 +189,17 @@ export default function PacientesList() {
         </CardContent>
       </Card>
 
-      {/* Dialog para formulario */}
+      {/* Formulario de paciente */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingPaciente ? 'Editar Paciente' : 'Nuevo Paciente'}</DialogTitle>
+            <DialogTitle>
+              {editingPaciente ? 'Editar Paciente' : 'Crear Nuevo Paciente'}
+            </DialogTitle>
           </DialogHeader>
-          <PacienteForm 
-            paciente={editingPaciente} 
+          <PacienteForm
+            paciente={editingPaciente}
             onSuccess={handleFormSuccess}
-            onCancel={() => setShowForm(false)}
           />
         </DialogContent>
       </Dialog>

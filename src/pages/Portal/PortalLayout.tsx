@@ -64,35 +64,41 @@ export default function PortalLayout() {
     { icon: Calendar, label: 'Citas', path: '/portal/citas' },
     { icon: TestTube, label: 'Resultados', path: '/portal/resultados' },
     { icon: Pill, label: 'Recetas', path: '/portal/recetas' },
-    { icon: Download, label: 'Documentos', path: '/portal/documentos' },
+    { icon: User, label: 'Perfil', path: '/portal/perfil' },
     { icon: MessageSquare, label: 'Contacto', path: '/portal/contacto' },
   ]
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex flex-col sm:flex-row h-screen bg-gray-100">
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-indigo-900 text-white transition-all duration-300 overflow-y-auto`}>
-        <div className="p-4 flex items-center justify-between border-b border-indigo-700">
-          {sidebarOpen && <h1 className="text-xl font-bold">HOSIX Portal</h1>}
+      <aside className={`${
+        sidebarOpen ? 'w-full sm:w-64' : 'w-20'
+      } bg-indigo-900 text-white transition-all duration-300 overflow-y-auto sm:overflow-visible
+        ${!sidebarOpen ? 'sm:h-screen sm:flex sm:flex-col' : ''}`}>
+        <div className="p-3 sm:p-4 flex items-center justify-between border-b border-indigo-700 sticky top-0">
+          {sidebarOpen && <h1 className="text-lg sm:text-xl font-bold truncate">HOSIX Portal</h1>}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="hover:bg-indigo-800 p-2 rounded"
+            className="hover:bg-indigo-800 p-2 rounded flex-shrink-0 sm:flex"
           >
             {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
 
         {/* Menú */}
-        <nav className="p-4 space-y-2">
+        <nav className={`p-2 sm:p-4 space-y-1 sm:space-y-2 ${sidebarOpen ? '' : 'hidden sm:flex sm:flex-col'}`}>
           {menuItems.map((item) => (
             <button
               key={item.path}
-              onClick={() => navigate(item.path)}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-indigo-800 transition-colors"
+              onClick={() => {
+                navigate(item.path)
+                if (sidebarOpen) setSidebarOpen(false)
+              }}
+              className="w-full flex items-center gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg hover:bg-indigo-800 transition-colors text-sm sm:text-base"
               title={item.label}
             >
-              <item.icon size={20} />
-              {sidebarOpen && <span>{item.label}</span>}
+              <item.icon size={18} className="sm:size-[20px] flex-shrink-0" />
+              {sidebarOpen && <span className="truncate">{item.label}</span>}
             </button>
           ))}
         </nav>
@@ -101,47 +107,47 @@ export default function PortalLayout() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Navbar */}
-        <nav className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">
+        <nav className="bg-white border-b border-gray-200 px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between sticky top-0 z-40">
+          <div className="min-w-0">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
               {userData?.nombre_completo || 'Mi Portal'}
             </h2>
-            <p className="text-sm text-gray-600">HCU: {userData?.hcu}</p>
+            <p className="text-xs sm:text-sm text-gray-600 truncate">HCU: {userData?.hcu}</p>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
             {/* Notificaciones */}
-            <button className="relative p-2 hover:bg-gray-100 rounded-lg">
-              <Bell size={20} className="text-gray-600" />
-              <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+            <button className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors">
+              <Bell size={18} className="sm:size-[20px] text-gray-600" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
 
             {/* User Menu */}
             <div className="relative">
               <button
                 onClick={() => setUserMenu(!userMenu)}
-                className="p-2 hover:bg-gray-100 rounded-lg"
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <User size={20} className="text-gray-600" />
+                <User size={18} className="sm:size-[20px] text-gray-600" />
               </button>
 
               {userMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
                   <button
                     onClick={() => {
                       navigate('/portal/perfil')
                       setUserMenu(false)
                     }}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm"
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 text-xs sm:text-sm transition-colors"
                   >
                     Ver Perfil
                   </button>
-                  <hr />
+                  <hr className="my-1" />
                   <button
                     onClick={handleLogout}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 text-sm flex items-center gap-2"
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 text-xs sm:text-sm flex items-center gap-2 transition-colors"
                   >
-                    <LogOut size={16} />
+                    <LogOut size={16} className="flex-shrink-0" />
                     Cerrar Sesión
                   </button>
                 </div>
@@ -152,7 +158,7 @@ export default function PortalLayout() {
 
         {/* Content */}
         <main className="flex-1 overflow-auto">
-          <div className="p-6">
+          <div className="p-3 sm:p-6">
             <Outlet />
           </div>
         </main>

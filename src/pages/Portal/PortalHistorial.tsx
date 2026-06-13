@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react'
-import { supabase } from '@/app/supabase'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import React, { useState, useMemo } from 'react'
+import { usePortalAuth } from '@/hooks/usePortalAuth'
+import { usePortalData } from '@/hooks/usePortalData'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -19,80 +20,29 @@ interface ConsultaItem {
   profesional: string
   especialidad: string
   diagnostico: string
-  estado: string
 }
 
 export default function PortalHistorial() {
+  const { paciente, isLoading: authLoading } = usePortalAuth()
+  const { historial, isLoading: dataLoading } = usePortalData({
+    hcu: paciente?.hcu,
+    enabled: !!paciente?.hcu
+  })
   const [filtro, setFiltro] = useState('')
-  const [consultas, setConsultas] = useState<ConsultaItem[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [consultasFiltradas, setConsultasFiltradas] = useState<ConsultaItem[]>([])
 
-  useEffect(() => {
-    loadConsultas()
-  }, [])
+  const isLoading = authLoading || dataLoading
 
-  useEffect(() => {
-    // Filtrar consultas por diagnóstico o profesional
-    if (!filtro) {
-      setConsultasFiltradas(consultas)
-    } else {
-      const filtroLower = filtro.toLowerCase()
-      const filtered = consultas.filter(c =>
-        c.diagnostico.toLowerCase().includes(filtroLower) ||
-        c.profesional.toLowerCase().includes(filtroLower) ||
-        c.especialidad.toLowerCase().includes(filtroLower)
-      )
-      setConsultasFiltradas(filtered)
-    }
-  }, [filtro, consultas])
+  const consultasFiltradas = useMemo(() => {
+    if (!historial) return []
+    if (!filtro) return historial
 
-  const loadConsultas = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { data: paciente } = await supabase
-        .from('portal_pacientes')
-        .select('hcu')
-        .eq('id', user.id)
-        .single()
-
-      if (!paciente?.hcu) {
-        setConsultas([])
-        setIsLoading(false)
-        return
-      }
-
-      // Cargar historial clínico
-      const { data: historial, error } = await supabase
-        .from('hosix_historia_clinica')
-        .select('id, fecha_consulta, diagnostico, especialidad, profesional_id')
-        .eq('hcu_paciente', paciente.hcu)
-        .order('fecha_consulta', { ascending: false })
-        .limit(100)
-
-      if (error) throw error
-
-      // Transformar datos
-      const consultasData: ConsultaItem[] = (historial || []).map(item => ({
-        id: item.id,
-        fecha: item.fecha_consulta || '',
-        profesional: item.profesional_id || 'No especificado',
-        especialidad: item.especialidad || 'General',
-        diagnostico: item.diagnostico || 'Sin diagnóstico',
-        estado: 'completado'
-      }))
-
-      setConsultas(consultasData)
-      setConsultasFiltradas(consultasData)
-    } catch (error) {
-      console.error('Error cargando consultas:', error)
-      toast.error('Error al cargar historial')
-    } finally {
-      setIsLoading(false)
-    }
-  }
+    const filtroLower = filtro.toLowerCase()
+    return historial.filter(c =>
+      c.diagnostico?.toLowerCase().includes(filtroLower) ||
+      c.profesional?.toLowerCase().includes(filtroLower) ||
+      c.especialidad?.toLowerCase().includes(filtroLower)
+    )
+  }, [filtro, historial])
 
   const handleDownloadHistorial = () => {
     toast.info('Descarga de PDF disponible próximamente')
@@ -100,7 +50,7 @@ export default function PortalHistorial() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <Loader className="h-12 w-12 animate-spin mx-auto mb-3 text-indigo-600" />
           <p className="text-gray-600">Cargando historial...</p>
@@ -110,88 +60,86 @@ export default function PortalHistorial() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Historial Médico</h1>
-        <p className="text-gray-600 mt-2">
-          Accede a tu historial médico completo y descarga documentos
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Historial Médico</h1>
+        <p className="text-sm sm:text-base text-gray-600 mt-2">
+          Accede a tu historial médico completo
         </p>
       </div>
 
       {/* Filtro y Búsqueda */}
       <Card>
-        <CardHeader>
-          <CardTitle>Buscar Consulta</CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base sm:text-lg">Buscar Consulta</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Buscar por diagnóstico, profesional o fecha..."
+                placeholder="Diagnóstico, profesional..."
                 value={filtro}
                 onChange={(e) => setFiltro(e.target.value)}
-                className="pl-10"
+                className="pl-10 text-sm"
               />
             </div>
-            <Button variant="outline">Filtrar</Button>
+            <Button variant="outline" className="text-sm">Filtrar</Button>
           </div>
         </CardContent>
       </Card>
 
       {/* Lista de Consultas */}
-      <div className="space-y-3">
+      <div className="space-y-2 sm:space-y-3">
         {consultasFiltradas.length === 0 ? (
           <Card>
-            <CardContent className="py-8">
-              <div className="text-center text-gray-600">
-                <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p>No hay consultas registradas</p>
-              </div>
+            <CardContent className="py-8 text-center">
+              <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p className="text-gray-600">No hay consultas registradas</p>
             </CardContent>
           </Card>
         ) : (
           consultasFiltradas.map((consulta) => (
             <Card key={consulta.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="pt-6">
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <CardContent className="pt-4 sm:pt-6">
+                <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-5 sm:gap-4">
                   {/* Fecha */}
                   <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Calendar className="h-4 w-4 text-blue-600" />
-                      <p className="text-sm font-semibold text-gray-900">Fecha</p>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Calendar className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                      <p className="text-xs sm:text-sm font-semibold text-gray-600">Fecha</p>
                     </div>
-                    <p className="text-gray-700">
+                    <p className="text-sm sm:text-base text-gray-900">
                       {new Date(consulta.fecha).toLocaleDateString('es-ES')}
                     </p>
                   </div>
 
                   {/* Profesional */}
                   <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Stethoscope className="h-4 w-4 text-green-600" />
-                      <p className="text-sm font-semibold text-gray-900">Profesional</p>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Stethoscope className="h-4 w-4 text-green-600 flex-shrink-0" />
+                      <p className="text-xs sm:text-sm font-semibold text-gray-600">Profesional</p>
                     </div>
-                    <p className="text-gray-700">{consulta.profesional}</p>
+                    <p className="text-sm sm:text-base text-gray-900">{consulta.profesional}</p>
                   </div>
 
                   {/* Especialidad */}
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900 mb-2">Especialidad</p>
-                    <p className="text-gray-700 text-sm">{consulta.especialidad}</p>
+                  <div className="hidden sm:block">
+                    <p className="text-xs sm:text-sm font-semibold text-gray-600 mb-1">Especialidad</p>
+                    <p className="text-sm text-gray-900">{consulta.especialidad}</p>
                   </div>
 
                   {/* Diagnóstico */}
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900 mb-2">Diagnóstico</p>
-                    <p className="text-gray-700 text-sm">{consulta.diagnostico}</p>
+                  <div className="hidden lg:block">
+                    <p className="text-xs sm:text-sm font-semibold text-gray-600 mb-1">Diagnóstico</p>
+                    <p className="text-sm text-gray-900 line-clamp-2">{consulta.diagnostico}</p>
                   </div>
 
                   {/* Acciones */}
-                  <div className="flex items-end">
-                    <Button variant="outline" size="sm" className="w-full">
+                  <div className="flex gap-2 col-span-2 sm:col-span-1">
+                    <Button variant="outline" size="sm" className="flex-1 text-xs sm:text-sm">
                       <Download className="h-4 w-4 mr-1" />
-                      Ver Detalles
+                      <span className="hidden xs:inline">Ver</span>
                     </Button>
                   </div>
                 </div>
@@ -203,13 +151,14 @@ export default function PortalHistorial() {
 
       {/* Botón Descargar Todo */}
       {consultasFiltradas.length > 0 && (
-        <div className="flex justify-end">
-          <Button 
+        <div className="flex justify-end pt-4">
+          <Button
             onClick={handleDownloadHistorial}
-            className="bg-indigo-600 hover:bg-indigo-700"
+            className="bg-indigo-600 hover:bg-indigo-700 text-sm sm:text-base"
           >
             <Download className="h-4 w-4 mr-2" />
-            Descargar Historial Completo (PDF)
+            <span className="hidden sm:inline">Descargar Historial Completo (PDF)</span>
+            <span className="sm:hidden">Descargar PDF</span>
           </Button>
         </div>
       )}
